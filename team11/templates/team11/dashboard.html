@@ -1,0 +1,172 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>داشبورد من</title>
+  <link rel="stylesheet" href="{% static 'team11/styles/common.css' %}">
+  <link rel="stylesheet" href="{% static 'team11/styles/style.css' %}">
+</head>
+
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-right">
+        <a href="{% url 'team11_home' %}" class="home-btn">صفحه اصلی</a>
+      </div>
+
+      <div class="header-left">
+        <div class="flag-settings">
+          <img src="{% static 'team11/public/images/settings.png' %}" alt="" class="settings-icon">
+          <div class="iran-flag">
+            <div class="flag-green"></div>
+            <div class="flag-white"></div>
+            <div class="flag-red"></div>
+          </div>
+        </div>
+
+        <div class="login-container">
+          <a href="{% url 'logout' %}" class="login-text">خروج</a>
+          <div class="user-avatar">
+            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="15" cy="10" r="5" fill="#647eb4" />
+              <path d="M5 25C5 20 9 17 15 17C21 17 25 20 25 25" stroke="#647eb4" stroke-width="2" fill="none" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main style="padding: 40px 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+        <h1 style="color: var(--navy);">داشبورد و تاریخچه آزمون‌ها</h1>
+        <a href="{% url 'team11_start_exam' %}" class="btn btn-primary">آزمون جدید</a>
+      </div>
+
+      {% if submissions %}
+        <div class="submissions-grid" style="display: grid; gap: 20px;">
+          {% for submission in submissions %}
+          <div class="submission-card" style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: grid; grid-template-columns: 1fr auto auto; gap: 20px; align-items: center;">
+            
+            <div>
+              <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 10px;">
+                <span class="exam-type-badge" style="background: {% if submission.submission_type == 'writing' %}var(--light-blue){% else %}var(--coral){% endif %}; color: var(--navy); padding: 5px 15px; border-radius: 15px; font-weight: bold;">
+                  {% if submission.submission_type == 'writing' %}نوشتن{% else %}اسپیکینگ{% endif %}
+                </span>
+                <span class="status-badge" style="background: {% if submission.status == 'completed' %}#d4edda{% else %}#fff3cd{% endif %}; color: {% if submission.status == 'completed' %}#155724{% else %}#856404{% endif %}; padding: 5px 15px; border-radius: 15px; font-size: 0.9rem;">
+                  {% if submission.status == 'completed' %}تکمیل شده{% elif submission.status == 'pending' %}در انتظار{% else %}{{ submission.status }}{% endif %}
+                </span>
+              </div>
+              
+              <div style="color: var(--dark-blue); margin-bottom: 5px;">
+                {% if submission.submission_type == 'writing' %}
+                  موضوع: {{ submission.writing_details.topic|truncatewords:10 }}
+                {% else %}
+                  موضوع: {{ submission.listening_details.topic|truncatewords:10 }}
+                {% endif %}
+              </div>
+              
+              <div style="color: #999; font-size: 0.9rem;">
+                {{ submission.created_at|date:"Y/m/d - H:i" }}
+              </div>
+            </div>
+
+            <div style="text-align: center;">
+              {% if submission.overall_score %}
+                <div style="background: var(--bg-cream); padding: 15px 25px; border-radius: 10px;">
+                  <div style="font-size: 0.9rem; color: var(--dark-blue); margin-bottom: 5px;">نمره کل</div>
+                  <div style="font-size: 2rem; font-weight: bold; color: var(--navy);">{{ submission.overall_score }}</div>
+                </div>
+              {% else %}
+                <div style="color: #999;">-</div>
+              {% endif %}
+            </div>
+
+            <div>
+              <a href="{% url 'team11_submission_detail' submission.submission_id %}" class="btn btn-secondary" style="text-decoration: none; padding: 10px 25px; display: inline-block;">
+                جزئیات
+              </a>
+            </div>
+
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Statistics Summary -->
+        <div class="stats-summary" style="margin-top: 50px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+          <div style="background: white; padding: 25px; border-radius: 15px; text-align: center;">
+            <div style="font-size: 2rem; color: var(--navy); font-weight: bold;">{{ submissions|length }}</div>
+            <div style="color: var(--dark-blue); margin-top: 5px;">کل آزمون‌ها</div>
+          </div>
+          
+          <div style="background: white; padding: 25px; border-radius: 15px; text-align: center;">
+            <div style="font-size: 2rem; color: var(--navy); font-weight: bold;">
+              {% widthratio submissions|length 1 1 %}
+            </div>
+            <div style="color: var(--dark-blue); margin-top: 5px;">آزمون‌های تکمیل شده</div>
+          </div>
+          
+          <div style="background: white; padding: 25px; border-radius: 15px; text-align: center;">
+            <div style="font-size: 2rem; color: var(--navy); font-weight: bold;">90.0</div>
+            <div style="color: var(--dark-blue); margin-top: 5px;">میانگین نمرات</div>
+          </div>
+        </div>
+
+      {% else %}
+        <div style="background: white; padding: 60px; border-radius: 15px; text-align: center;">
+          <h2 style="color: var(--navy); margin-bottom: 20px;">هنوز آزمونی ارسال نکرده‌اید</h2>
+          <p style="color: var(--dark-blue); margin-bottom: 30px; font-size: 1.1rem;">با شروع اولین آزمون، مسیر یادگیری خود را آغاز کنید!</p>
+          <a href="{% url 'team11_start_exam' %}" class="btn btn-primary" style="text-decoration: none; display: inline-block;">شروع آزمون اول</a>
+        </div>
+      {% endif %}
+    </main>
+  </div>
+
+  <style>
+    .btn {
+      padding: 12px 30px;
+      border-radius: 25px;
+      border: none;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: var(--dark-blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--navy);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--coral);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #e88f87;
+    }
+
+    .home-btn {
+      padding: 10px 20px;
+      background: var(--light-blue);
+      color: var(--navy);
+      border-radius: 20px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    .home-btn:hover {
+      background: var(--dark-blue);
+      color: white;
+    }
+  </style>
+</body>
+</html>
