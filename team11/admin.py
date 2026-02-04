@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Submission, WritingSubmission, ListeningSubmission, AssessmentResult
+from .models import (
+    Submission, WritingSubmission, ListeningSubmission, 
+    AssessmentResult, QuestionCategory, Question
+)
 
 
 @admin.register(Submission)
@@ -30,3 +33,23 @@ class AssessmentResultAdmin(admin.ModelAdmin):
     list_display = ['result_id', 'submission', 'created_at']
     readonly_fields = ['result_id', 'created_at']
     search_fields = ['submission__submission_id']
+
+
+@admin.register(QuestionCategory)
+class QuestionCategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'question_type', 'is_active']
+    list_filter = ['question_type', 'is_active']
+    search_fields = ['name', 'description']
+    readonly_fields = ['category_id']
+
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = ['question_text_short', 'category', 'difficulty_level', 'is_active']
+    list_filter = ['category', 'difficulty_level', 'is_active']
+    search_fields = ['question_text']
+    readonly_fields = ['question_id']
+    
+    def question_text_short(self, obj):
+        return obj.question_text[:80] + '...' if len(obj.question_text) > 80 else obj.question_text
+    question_text_short.short_description = 'Question'

@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import random
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_POST, require_http_methods
@@ -9,26 +10,14 @@ from django.conf import settings
 from core.auth import api_login_required
 from .models import (
     Submission, WritingSubmission, ListeningSubmission, 
-    AssessmentResult, SubmissionType, AnalysisStatus
+    AssessmentResult, SubmissionType, AnalysisStatus,
+    QuestionCategory, Question
 )
 from .services import assess_writing, assess_speaking
 
 logger = logging.getLogger(__name__)
 
 TEAM_NAME = "team11"
-
-# Static questions for now
-WRITING_TOPICS = [
-    "Describe your favorite holiday destination and explain why you enjoy it.",
-    "What are the advantages and disadvantages of working from home?",
-    "Discuss the impact of social media on modern communication.",
-]
-
-LISTENING_TOPICS = [
-    "Describe a memorable experience from your childhood.",
-    "Talk about your career goals and how you plan to achieve them.",
-    "Explain the importance of learning a foreign language.",
-]
 
 
 @api_login_required
@@ -59,36 +48,70 @@ def dashboard(request):
 
 @api_login_required
 def start_exam(request):
-    """Page to select exam type (writing or listening)"""
+    """Page to select exam type and category"""
+    writing_categories = QuestionCategory.objects.filter(
+        question_type=SubmissionType.WRITING,
+        is_active=True
+    ).prefetch_related('questions')
+    
+    listening_categories = QuestionCategory.objects.filter(
+        question_type=SubmissionType.LISTENING,
+        is_active=True
+    ).prefetch_related('questions')
+    
     context = {
-        'writing_topics': WRITING_TOPICS,
-        'listening_topics': LISTENING_TOPICS,
+        'writing_categories': writing_categories,
+        'listening_categories': listening_categories,
     }
     return render(request, f"{TEAM_NAME}/start_exam.html", context)
 
 
 @api_login_required
 def writing_exam(request):
-    """Page for writing exam"""
-    topic_index = int(request.GET.get('topic', 0))
-    topic = WRITING_TOPICS[topic_index] if 0 <= topic_index < len(WRITING_TOPICS) else WRITING_TOPICS[0]
+    """Page for writing exam - random question from selected category"""
+    category_id = request.GET.get('category')
+    
+    if category_id:
+        questions = Question.objects.filter(
+            category_id=category_id,
+            category__question_type=SubmissionType.WRITING,
+            is_active=True
+        )
+        question = random.choice(questions) if questions.exists() else None
+    else:
+        questions = Question.objects.filter(
+            category__question_type=SubmissionType.WRITING,
+            is_active=True
+        )
+        question = random.choice(questions) if questions.exists() else None
     
     context = {
-        'topic': topic,
-        'topic_index': topic_index,
+        'question': question,
     }
     return render(request, f"{TEAM_NAME}/writing_exam.html", context)
 
 
 @api_login_required
 def listening_exam(request):
-    """Page for listening exam"""
-    topic_index = int(request.GET.get('topic', 0))
-    topic = LISTENING_TOPICS[topic_index] if 0 <= topic_index < len(LISTENING_TOPICS) else LISTENING_TOPICS[0]
+    """Page for listening exam - random question from selected category"""
+    category_id = request.GET.get('category')
+    
+    if category_id:
+        questions = Question.objects.filter(
+            category_id=category_id,
+            category__question_type=SubmissionType.LISTENING,
+            is_active=True
+        )
+        question = random.choice(questions) if questions.exists() else None
+    else:
+        questions = Question.objects.filter(
+            category__question_type=SubmissionType.LISTENING,
+            is_active=True
+        )
+        question = random.choice(questions) if questions.exists() else None
     
     context = {
-        'topic': topic,
-        'topic_index': topic_index,
+        'question': question,
     }
     return render(request, f"{TEAM_NAME}/listening_exam.html", context)
 
@@ -100,6 +123,7 @@ def submit_writing(request):
     """API endpoint to submit writing task"""
     try:
         data = json.loads(request.body)
+        question_id = data.get('question_id', '')
         topic = data.get('topic', '')
         text_body = data.get('text_body', '')
         
@@ -107,6 +131,14 @@ def submit_writing(request):
             return JsonResponse({'error': 'Text body is required'}, status=400)
         
         word_count = len(text_body.split())
+        
+        # Get question object if provided
+        question = None
+        if question_id:
+            try:
+                question = Question.objects.get(question_id=question_id)
+            except Question.DoesNotExist:
+                pass
         
         # Create submission with pending status
         submission = Submission.objects.create(
@@ -118,6 +150,7 @@ def submit_writing(request):
         # Create writing details
         WritingSubmission.objects.create(
             submission=submission,
+            question=question,
             topic=topic,
             text_body=text_body,
             word_count=word_count
@@ -179,12 +212,21 @@ def submit_listening(request):
     """API endpoint to submit listening (audio) task"""
     try:
         data = json.loads(request.body)
+        question_id = data.get('question_id', '')
         topic = data.get('topic', '')
         audio_url = data.get('audio_url', '')
         duration = data.get('duration_seconds', 0)
         
         if not audio_url:
             return JsonResponse({'error': 'Audio URL is required'}, status=400)
+        
+        # Get question object if provided
+        question = None
+        if question_id:
+            try:
+                question = Question.objects.get(question_id=question_id)
+            except Question.DoesNotExist:
+                pass
         
         # Create submission with pending status
         submission = Submission.objects.create(
@@ -196,6 +238,7 @@ def submit_listening(request):
         # Create listening details (without transcription initially)
         listening_detail = ListeningSubmission.objects.create(
             submission=submission,
+            question=question,
             topic=topic,
             audio_file_url=audio_url,
             duration_seconds=duration

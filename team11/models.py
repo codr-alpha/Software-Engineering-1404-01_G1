@@ -16,6 +16,57 @@ class SubmissionType(models.TextChoices):
     LISTENING = 'listening', 'Listening'
 
 
+class QuestionCategory(models.Model):
+    """Categories for organizing questions (e.g., Academic, Personal, Work, etc.)"""
+    category_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    question_type = models.CharField(max_length=20, choices=SubmissionType.choices)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name_plural = 'Question Categories'
+
+    def __str__(self):
+        return f"{self.name} ({self.question_type})"
+
+
+class Question(models.Model):
+    """TOEFL-style questions for writing and speaking tasks"""
+    question_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    category = models.ForeignKey(QuestionCategory, on_delete=models.CASCADE, related_name='questions')
+    question_text = models.TextField(help_text="The prompt/question for the task")
+    difficulty_level = models.CharField(
+        max_length=20,
+        choices=[
+            ('beginner', 'Beginner'),
+            ('intermediate', 'Intermediate'),
+            ('advanced', 'Advanced'),
+        ],
+        default='intermediate'
+    )
+    expected_duration_seconds = models.PositiveIntegerField(
+        help_text="Expected time to complete (for speaking tasks)",
+        null=True,
+        blank=True
+    )
+    min_word_count = models.PositiveIntegerField(
+        help_text="Minimum word count (for writing tasks)",
+        null=True,
+        blank=True
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.category.name}: {self.question_text[:50]}..."
+
+
 class Submission(models.Model):
     """Abstract base model for all submissions"""
     submission_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -47,6 +98,7 @@ class WritingSubmission(models.Model):
         primary_key=True,
         related_name='writing_details'
     )
+    question = models.ForeignKey(Question, on_delete=models.SET_NULL, null=True, blank=True)
     topic = models.CharField(max_length=500)
     text_body = models.TextField()
     word_count = models.PositiveIntegerField()
@@ -63,6 +115,7 @@ class ListeningSubmission(models.Model):
         primary_key=True,
         related_name='listening_details'
     )
+    question = models.ForeignKey(Question, on_delete=models.SET_NULL, null=True, blank=True)
     topic = models.CharField(max_length=500)
     audio_file_url = models.CharField(max_length=500)
     duration_seconds = models.PositiveIntegerField()

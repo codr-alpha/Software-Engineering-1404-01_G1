@@ -1,169 +1,126 @@
-# Team 11 - Listening & Writing Microservice
+# Team 11 - TOEFL Listening & Writing Assessment
 
-## Overview
-
-This microservice provides AI-powered listening (speaking) and writing assessment for TOEFL-style English exams. Users submit writing texts or audio recordings and receive detailed AI-generated scores and feedback.
+AI-powered English exam microservice with dynamic question system and TOEFL iBT-standard assessment.
 
 [View Figma Design](https://www.figma.com/design/3uaZuwIjT0OU8v7w2cy7Df/SE1_T11?node-id=0-1&m=dev&t=wTZc2qAKki3quDGV-1)
 
 ## Features
 
-✅ **AI Assessment** (Powered by Deepseek + Whisper)
-- Writing: Grammar, Vocabulary, Coherence, Fluency (0-100 each)
-- Speaking: Pronunciation, Fluency, Vocabulary, Grammar, Coherence (0-100 each)
+**AI Assessment** (Deepseek + Whisper)
+- Writing: Grammar, Vocabulary, Coherence, Task Response (TOEFL iBT rubric)
+- Speaking: Delivery, Fluency, Vocabulary, Grammar, Topic Development (TOEFL iBT rubric)
 - Audio transcription with Whisper API
-- Personalized feedback and improvement suggestions
+- Personalized feedback with improvement suggestions
 - Cost: ~$0.10/month for 300 submissions
 
-✅ **Database Models**
-- `Submission`: Base model with status tracking (pending/in_progress/completed/failed)
-- `WritingSubmission`: Text details and word count
-- `ListeningSubmission`: Audio details and transcription
-- `AssessmentResult`: Detailed sub-scores and feedback
+**Dynamic Question System**
+- Category-based question organization (Academic, Personal, Opinion, etc.)
+- Random question selection per exam
+- Difficulty levels: beginner, intermediate, advanced
+- 10 sample TOEFL-style questions included
 
-✅ **API Endpoints**
-- `POST /team11/api/submit-writing/` - Submit and assess writing
-- `POST /team11/api/submit-listening/` - Submit and assess speaking
-- `GET /team11/dashboard/` - View submission history
-- `GET /team11/submission/<uuid>/` - View detailed results
+**Database Models**
+- `QuestionCategory` & `Question`: Dynamic question management
+- `Submission`: Base model with status tracking
+- `WritingSubmission` & `ListeningSubmission`: Exam details with question linking
+- `AssessmentResult`: Detailed TOEFL-standard scores and feedback
 
-✅ **Frontend Pages**
-- Landing page, exam selection, writing/listening interfaces
-- Dashboard with submission history and statistics
-- Detailed results page with AI feedback
+## Quick Start
+
+**Local Development:**
+```powershell
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python manage.py migrate --database=team11
+python manage.py runserver
+```
+Access: http://localhost:8000/team11/
+
+**Docker:**
+```powershell
+docker-compose up --build
+docker-compose exec core python manage.py migrate
+```
 
 ## AI Integration
 
 **API Configuration:**
 - Provider: GapGPT (`https://api.gapgpt.app/v1`)
 - Models: `deepseek-chat` (text), `gapgpt/whisper-1` (audio)
-- Key configured in `services/ai_service.py`
+- Key: Configured in `services/ai_service.py`
 
 **Service Layer:**
 ```python
 from team11.services import assess_writing, assess_speaking
 
-# Writing assessment
+# Writing: Returns scores + feedback
 result = assess_writing(topic, text_body, word_count)
-# Returns: scores, feedback_summary, suggestions
 
-# Speaking assessment (transcription + analysis)
+# Speaking: Transcription + analysis
 result = assess_speaking(topic, audio_file_path, duration_seconds)
-# Returns: scores, transcription, feedback_summary, suggestions
 ```
 
-**Test AI Service:**
+**Test AI:**
 ```powershell
 python team11/test_ai_service.py
 ```
+
+## TOEFL iBT Assessment Criteria
+
+**Writing** (0-100 scale, normalized from 5-point rubric):
+| Score | Grammar & Syntax | Vocabulary | Coherence | Task Response |
+|-------|------------------|------------|-----------|---------------|
+| 90-100 | Minimal errors, clear | Precise, varied | Well-organized | Fully developed |
+| 70-89 | Minor errors | Adequate variety | Generally clear | Somewhat developed |
+| 50-69 | Frequent errors | Limited range | Basic organization | Limited development |
+| 30-49 | Severe errors | Repetitive | Disorganized | Poorly developed |
+| 0-29 | Unintelligible | Severely limited | Incoherent | Minimal response |
+
+**Speaking** (0-100 scale, normalized from 4-point rubric):
+| Score | Delivery | Fluency | Vocabulary | Grammar | Development |
+|-------|----------|---------|------------|---------|-------------|
+| 85-100 | Clear speech | Minor hesitation | Effective | Good control | Fully developed |
+| 60-84 | Generally clear | Some hesitation | Adequate | Noticeable errors | Somewhat developed |
+| 35-59 | Unclear | Frequent pauses | Limited | Frequent errors | Limited development |
+| 0-34 | Hard to understand | Fragmented | Severely limited | Severe errors | Minimal content |
 
 ## Project Structure
 
 ```
 team11/
-├── services/              # AI integration layer
-│   ├── ai_service.py      # Core AI functions
-│   └── prompts.py         # Assessment prompts
-├── models.py              # Database models
-├── views.py               # Views and API endpoints (AI-integrated)
-├── migrations/            # Database migrations
-├── templates/team11/      # HTML templates
-├── static/team11/         # CSS and assets
-├── figma/                 # SVG mockups for Figma
-└── test_ai_service.py     # AI testing script
+├── services/
+│   ├── ai_service.py       # AI assessment functions
+│   └── prompts.py          # TOEFL iBT prompts
+├── models.py               # Database schema
+├── views.py                # API endpoints (dynamic questions)
+├── admin.py                # Admin interface for questions
+├── migrations/             # Database migrations
+├── templates/team11/       # Frontend templates
+└── test_ai_service.py      # AI testing
 ```
 
-## How to Run
+## Testing
 
-### Local Development
+1. **Register**: http://localhost:8000/ → ثبت نام
+2. **Writing Exam**: Select category → Random question appears → Submit essay (150+ words)
+3. **Speaking Exam**: Select category → Random question appears → Record audio (30-60s)
+4. **Dashboard**: View all submissions and detailed TOEFL-standard scores
+5. **Admin**: http://localhost:8000/admin/ → Manage questions and categories
 
-1. **Activate virtual environment and install dependencies:**
-   ```powershell
-   .venv\Scripts\Activate.ps1
-   pip install -r requirements.txt
-   ```
+## API Endpoints
 
-2. **Run migrations:**
-   ```powershell
-   python manage.py migrate
-   ```
-
-3. **Run development server:**
-   ```powershell
-   python manage.py runserver
-   ```
-
-4. **Access:**
-   - Main site: http://localhost:8000/
-   - Team 11: http://localhost:8000/team11/
-
-### Docker (Production)
-
-```powershell
-docker network create app404_net
-docker-compose up --build
-docker-compose exec core python manage.py migrate
-```
-
-## Testing the AI Assessment
-
-### 1. User Registration
-1. Navigate to http://localhost:8000/
-2. Click "ثبت نام" (Sign Up) and create an account
-
-### 2. Test Writing (AI-Powered)
-1. Go to http://localhost:8000/team11/
-2. Click "شروع آزمون" → Select writing topic
-3. Write your essay (150+ words recommended)
-4. Submit and receive:
-   - Overall score (0-100)
-   - Sub-scores: Grammar, Vocabulary, Coherence, Fluency
-   - Detailed feedback and 3 personalized suggestions
-
-### 3. Test Speaking (AI-Powered)
-1. Choose listening topic from exam selection
-2. Record audio (30-60 seconds)
-3. Submit and receive:
-   - Audio transcription (Whisper API)
-   - Overall score (0-100)
-   - Sub-scores: Pronunciation, Fluency, Vocabulary, Grammar, Coherence
-   - Detailed feedback and suggestions
-
-### 4. View Dashboard
-- Click "داشبورد من" to see all submissions
-- View detailed results for each assessment
-
-## Assessment Criteria
-
-**Writing** (4 criteria × 0-100):
-- **Grammar**: Sentence structure, tenses, agreement
-- **Vocabulary**: Word choice, range, precision
-- **Coherence**: Logical organization, idea progression
-- **Fluency**: Natural flow, sentence variety
-
-**Speaking** (5 criteria × 0-100):
-- **Pronunciation**: Clarity, accent, intonation
-- **Fluency**: Pace, pauses, natural delivery
-- **Vocabulary**: Word choice and range
-- **Grammar**: Sentence structure, verb usage
-- **Coherence**: Logical organization
-
-**Score Ranges:**
-- 90-100: Excellent (near-native)
-- 75-89: Good (strong command)
-- 60-74: Satisfactory (adequate)
-- 40-59: Limited (frequent errors)
-- 0-39: Poor (severe errors)
+- `POST /team11/api/submit-writing/` - Submit writing with question_id
+- `POST /team11/api/submit-listening/` - Submit speaking with question_id
+- `GET /team11/dashboard/` - Submission history
+- `GET /team11/submission/<uuid>/` - Detailed results
 
 ## Architecture
 
-- **Microservice Pattern**: Independent operation with own database
+- **Microservice Pattern**: Independent database (`team11.sqlite3`)
 - **Authentication**: Shared JWT cookies via core app
-- **AI Service Layer**: `services/ai_service.py` handles API calls
-- **Error Handling**: Failed assessments marked with status='failed'
-- **Logging**: All AI calls logged for debugging
+- **AI Service**: Isolated in `services/` layer
+- **Database Router**: Custom routing for team databases
+- **Error Handling**: Failed assessments logged with status='failed'
 
-## Contributors
-
-Team 11 - Software Engineering Course 1404-01  
-Amirkabir University of Technology
+---
+**Team 11** - Software Engineering 1404-01 | Amirkabir University of Technology
