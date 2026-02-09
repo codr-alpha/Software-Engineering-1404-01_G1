@@ -99,6 +99,7 @@ const speakingExamState = {
     totalQuestions: 0,
     currentExam: null,
     recordings: {}, // { questionId: [{ blob, duration, attempt }, ...] }
+    selectedRecordings: {}, // { questionId: recordingIndex } - tracks which recording is selected for each question
     startTime: null,
     timeRemaining: 0,
     timerInterval: null,
@@ -107,7 +108,7 @@ const speakingExamState = {
     isPaused: false,
     recordingTime: 0,
     recordingTimer: null,
-    currentAttempt: 1,
+    currentAttempt: 0,
     maxAttempts: 3,
     mediaRecorder: null,
     audioChunks: [],
@@ -216,7 +217,7 @@ function loadQuestion(questionIndex) {
     const questionRecordings = speakingExamState.recordings[questionId] || [];
     const attempts = document.getElementById('attempts');
     if (attempts) {
-        attempts.textContent = `${questionRecordings.length + 1}/${speakingExamState.maxAttempts}`;
+        attempts.textContent = `${questionRecordings.length}/${speakingExamState.maxAttempts}`;
     }
     
     // Load playback items for this question
@@ -242,9 +243,19 @@ function loadPlaybackItems(questionId) {
     
     // Add each recording
     questionRecordings.forEach((recording, index) => {
+        const isSelected = !speakingExamState.selectedRecordings || 
+                          speakingExamState.selectedRecordings[questionId] === index;
         const playbackHTML = `
             <div class="playback-item" data-question-id="${questionId}" data-recording-index="${index}">
                 <div class="playback-item-inner">
+                    <!-- Selection Radio Button -->
+                    <input type="radio" 
+                           name="recording-${questionId}" 
+                           value="${index}" 
+                           ${isSelected ? 'checked' : ''}
+                           onchange="selectRecording('${questionId}', ${index})"
+                           style="width: 20px; height: 20px; cursor: pointer; margin-right: 12px;">
+                    
                     <!-- Playback Actions -->
                     <div class="playback-actions">
                         <div class="playback-action-btn download-btn" onclick="downloadRecording('${questionId}', ${index})">
@@ -442,6 +453,15 @@ function stopRecording() {
             speakingExamState.recordings[questionId] = [];
         }
         
+        // Check if max attempts reached BEFORE adding
+        if (speakingExamState.recordings[questionId].length >= speakingExamState.maxAttempts) {
+            alert(`حداکثر تعداد تلاش‌ها (${speakingExamState.maxAttempts}) برای این سوال به پایان رسیده است.`);
+            // Stop all tracks
+            speakingExamState.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            resetRecordingState();
+            return;
+        }
+        
         // Store recording with metadata
         speakingExamState.recordings[questionId].push({
             blob: audioBlob,
@@ -451,6 +471,13 @@ function stopRecording() {
         
         // Stop all tracks
         speakingExamState.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        
+        // Update attempts counter - NOW show the count of recordings we have
+        const attempts = document.getElementById('attempts');
+        if (attempts) {
+            const currentAttempts = speakingExamState.recordings[questionId].length;
+            attempts.textContent = `${currentAttempts}/${speakingExamState.maxAttempts}`;
+        }
         
         // Update playback items display
         loadPlaybackItems(questionId);
@@ -564,6 +591,12 @@ function downloadRecording(questionId, recordingIndex) {
     a.download = `recording-${questionId}-${recordingIndex + 1}.wav`;
     a.click();
     URL.revokeObjectURL(audioUrl);
+}
+
+function selectRecording(questionId, recordingIndex) {
+    // Store which recording is selected for this question
+    speakingExamState.selectedRecordings[questionId] = recordingIndex;
+    console.log(`Selected recording ${recordingIndex + 1} for question ${questionId}`);
 }
 
 // ==================== NAVIGATION ====================
