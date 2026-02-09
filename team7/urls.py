@@ -30,4 +30,5 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("exams/", views.exams, name="exams"),
+    path("exam-template/", views.exam_template, name="exam-template"),
 ]

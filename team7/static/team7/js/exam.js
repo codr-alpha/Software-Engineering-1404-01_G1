@@ -5,7 +5,8 @@
 
 // ==================== Mock Data ====================
 /**
- * Hardcoded exam data - can be replaced with API calls in future
+ * Carousel data for exam listing page - minimal data for rendering cards
+ * For exam questions, see exam-template.js
  */
 const examData = {
     speaking: [
@@ -185,6 +186,7 @@ function renderCarouselItems(containerId, items) {
     items.forEach((item) => {
         const card = document.createElement('div');
         card.className = 'exam-card';
+        card.id = item.id;
         
         const difficultyClass = 
             item.difficulty === 'آسان' ? 'green' :
@@ -310,8 +312,12 @@ function initializeExamButtons() {
     examButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            const examTitle = this.closest('.exam-card')?.querySelector('.card-title')?.textContent;
-            console.log('Starting exam:', examTitle);
+            const card = this.closest('.exam-card');
+            const examId = card?.id;
+            const examTitle = card?.querySelector('.card-title')?.textContent;
+            
+            console.log('Starting exam:', examTitle, 'ID:', examId);
+            console.log('Available exam data:', mockExamData);
             
             // Add visual feedback
             this.style.transform = 'scale(0.95)';
@@ -319,8 +325,13 @@ function initializeExamButtons() {
                 this.style.transform = '';
             }, 150);
             
-            // Navigate to exam (implement actual navigation)
-            // window.location.href = `/exams/${examTitle}`;
+            // Navigate to exam template page with exam ID as query parameter
+            if (examId) {
+                // Use absolute path with Django URL pattern
+                window.location.href = `/team7/exam-template/?exam=${examId}`;
+            } else {
+                alert('خطا: شناسه آزمون یافت نشد');
+            }
         });
     });
 }

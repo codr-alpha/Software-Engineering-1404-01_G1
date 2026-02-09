@@ -37,6 +37,11 @@ def exams(request):
     return render(request, f"{TEAM_NAME}/exam.html")
 
 
+def exam_template(request):
+    """Serve team7 exam template page (exam taking interface)."""
+    return render(request, f"{TEAM_NAME}/exam-template.html")
+
+
 @csrf_exempt
 @require_http_methods(["POST"])
 @api_login_required
