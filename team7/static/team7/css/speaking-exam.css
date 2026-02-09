@@ -1,0 +1,1013 @@
+/* CSS Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    direction: rtl;
+    overflow-x: hidden;
+}
+
+/* Exam Template Container */
+.speaking-exam-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    min-height: 100vh;
+    background: linear-gradient(-37.8502deg, rgb(240, 255, 254) 64.645%, rgb(240, 243, 245) 135.36%);
+}
+
+/* Exam Navbar */
+.exam-navbar {
+    background: white;
+    height: 80px;
+    width: 100%;
+    box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.navbar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    width: 100%;
+    height: 100%;
+}
+
+/* Nav Left Section */
+.nav-left-section {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.previous-button {
+    background: #f0f3f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.previous-button:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.previous-button p {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 15px;
+    color: #0b0754;
+    line-height: normal;
+}
+
+.question-number {
+    background: rgba(88, 124, 230, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.question-number p {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 15px;
+    color: #587ce6;
+    text-align: center;
+    line-height: normal;
+}
+
+.next-button {
+    background: linear-gradient(to top, #fa0b67 50%, #80caff 150%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.next-button:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.next-button p {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 15px;
+    color: white;
+    line-height: normal;
+}
+
+/* Nav Center Section */
+.nav-center-section {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.timer-container {
+    display: flex;
+    align-items: center;
+    padding: 12px 24px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    background-image: linear-gradient(-22.4221deg, rgba(250, 11, 103, 0.098) 64.645%, rgba(128, 202, 255, 0.098) 135.36%);
+}
+
+.timer-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+    line-height: normal;
+    font-style: normal;
+    flex-shrink: 0;
+    white-space: pre-wrap;
+}
+
+.timer-label {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    color: #a7bccc;
+    width: 100%;
+}
+
+.timer-value {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: #fa0b67;
+    width: 100%;
+}
+
+/* Nav Right Section */
+.nav-right-section {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.save-button {
+    background: rgba(76, 175, 80, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.save-button:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.save-button p {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 15px;
+    color: #4caf50;
+    line-height: normal;
+}
+
+.submit-button {
+    background: linear-gradient(to top, #fa0b67 50%, #80caff 150%);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 12px 28px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.submit-button:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.submit-button p {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 15px;
+    color: white;
+    line-height: normal;
+}
+
+/* Exam Content */
+.exam-content {
+    display: flex;
+    align-items: flex-start;
+    min-height: 820px;
+    width: 100%;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.ellipse-decoration {
+    height: 15px;
+    width: 89px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.ellipse-decoration svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Question Panel */
+.question-panel {
+    background: white;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: flex-start;
+    padding: 40px 32px;
+    box-shadow: 4px 2px 16px 0px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+    width: 582px;
+    max-height: 820px;
+    overflow-y: auto;
+}
+
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 200px;
+}
+
+.loading-spinner p {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-size: 16px;
+    color: #a7bccc;
+}
+
+/* Question Header */
+.question-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    padding-bottom: 20px;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.question-type-badge {
+    background: linear-gradient(to top, rgba(250, 11, 103, 0.15) 50%, rgba(128, 202, 255, 0.15) 150%);
+    border-radius: 20px;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.question-type-badge-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    width: 100%;
+}
+
+.question-type-badge-inner p {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 13px;
+    color: #fa0b67;
+    text-align: center;
+    line-height: normal;
+}
+
+.question-title {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 24px;
+    color: #0b0754;
+    text-align: right;
+    width: 100%;
+    white-space: pre-wrap;
+    line-height: normal;
+}
+
+/* Question Body */
+.question-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: flex-start;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+/* Question Instruction */
+.question-instruction {
+    background: #f0f3f5;
+    border-radius: 12px;
+    flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 20px;
+    line-height: normal;
+    font-style: normal;
+    text-align: right;
+    white-space: pre-wrap;
+}
+
+.instruction-title {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #0b0754;
+    width: 100%;
+}
+
+.instruction-text {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: #3aa0ca;
+    width: 100%;
+}
+
+/* Question Content */
+.question-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.question-content p {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 16px;
+    color: #0b0754;
+    text-align: right;
+    width: 100%;
+    white-space: pre-wrap;
+    line-height: normal;
+}
+
+/* Question Requirements */
+.question-requirements {
+    background: rgba(255, 176, 45, 0.1);
+    border-radius: 12px;
+    flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 20px;
+}
+
+.requirements-title {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 15px;
+    color: #ffb02d;
+    text-align: right;
+    width: 100%;
+    white-space: pre-wrap;
+    line-height: normal;
+}
+
+.requirement {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.requirement p {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 14px;
+    color: #0b0754;
+    line-height: normal;
+}
+
+.bullet {
+    background: #ffb02d;
+    border-radius: 50px;
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+}
+
+/* Question Tips */
+.question-tips {
+    background: rgba(88, 124, 230, 0.1);
+    border-radius: 12px;
+    flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 20px;
+}
+
+.tips-title {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 15px;
+    color: #587ce6;
+    text-align: right;
+    width: 100%;
+    white-space: pre-wrap;
+    line-height: normal;
+}
+
+.tip {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.tip p {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 14px;
+    color: #0b0754;
+    line-height: normal;
+}
+
+.tip-icon {
+    background: #587ce6;
+    border-radius: 4px;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+/* Recording Panel */
+.recording-panel {
+    background: #f0f3f5;
+    flex: 1 0 0;
+    min-height: 1px;
+    min-width: 1px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: flex-start;
+    padding: 40px;
+    overflow-y: auto;
+    max-height: 820px;
+}
+
+/* Recording Header */
+.recording-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    line-height: normal;
+    font-style: normal;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.recording-title {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: #0b0754;
+}
+
+.recording-stats {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-shrink: 0;
+}
+
+.recording-time-stat,
+.attempts-stat {
+    background: white;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    padding: 12px 20px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.stat-label {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    color: #a7bccc;
+    max-width: 1320px;
+}
+
+.stat-value-red {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: #fa0b67;
+    max-width: 1320px;
+}
+
+.stat-value-green {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: #4caf50;
+    max-width: 1320px;
+}
+
+/* Recording Main */
+.recording-main {
+    background: white;
+    min-height: 350px;
+    border-radius: 16px;
+    flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.recording-main-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    width: 100%;
+    min-height: inherit;
+}
+
+/* Mic Container */
+.mic-container {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    align-items: center;
+    justify-content: center;
+    max-width: 1264px;
+    flex-shrink: 0;
+}
+
+.mic-frame {
+    position: relative;
+    flex-shrink: 0;
+    width: 160px;
+    height: 160px;
+}
+
+.mic-button {
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-radius: 50px;
+    width: 160px;
+    height: 160px;
+    box-shadow: 0px 12px 40px 0px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(-45deg, rgb(250, 11, 103) 64.645%, rgb(128, 202, 255) 135.36%);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mic-button:hover {
+    transform: scale(1.05);
+}
+
+.sound-wave-icon {
+    position: absolute;
+    background: #0b0754;
+    height: 70px;
+    left: 45px;
+    border-radius: 32px;
+    top: 45px;
+    width: 70px;
+}
+
+.sound-wave-icon .bar {
+    position: absolute;
+    background: white;
+    border-radius: 10px;
+}
+
+.sound-wave-icon .bar1 {
+    bottom: 34.38%;
+    left: 25%;
+    right: 62.5%;
+    top: 34.38%;
+}
+
+.sound-wave-icon .bar2 {
+    bottom: 25%;
+    left: 43.75%;
+    right: 43.75%;
+    top: 25%;
+}
+
+.sound-wave-icon .bar3 {
+    bottom: 34.38%;
+    left: 62.5%;
+    right: 25%;
+    top: 34.38%;
+}
+
+.mic-title {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 20px;
+    color: #0b0754;
+    text-align: center;
+    line-height: normal;
+    max-width: 1264px;
+}
+
+.mic-subtitle {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 14px;
+    color: #a7bccc;
+    text-align: center;
+    line-height: normal;
+    max-width: 1264px;
+}
+
+/* Recording Controls */
+.recording-controls {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+    max-width: 1264px;
+    flex-shrink: 0;
+}
+
+.pause-button,
+.stop-button {
+    background: #f0f3f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50px;
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pause-button:hover,
+.stop-button:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+.pause-bars {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 3px;
+}
+
+.pause-bar {
+    background: #0b0754;
+    height: 22px;
+    border-radius: 5px;
+    flex-shrink: 0;
+    width: 8px;
+}
+
+.stop-icon {
+    background: #0b0754;
+    height: 24px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    width: 26px;
+}
+
+.record-button-frame {
+    position: relative;
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+}
+
+.record-button {
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-radius: 50px;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(-45deg, rgb(250, 11, 103) 64.645%, rgb(128, 202, 255) 135.36%);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.record-button:hover {
+    transform: scale(1.05);
+}
+
+.microphone-animation {
+    position: absolute;
+    left: 11px;
+    top: 11px;
+    width: 34px;
+    height: 34px;
+}
+
+.microphone-animation svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Recording Timer */
+.recording-timer {
+    background: #f0f3f5;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    line-height: normal;
+    max-width: 1200px;
+    font-style: normal;
+    padding: 16px 32px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.timer-label-small {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #a7bccc;
+    max-width: 1200px;
+}
+
+.timer-value-large {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: #fa0b67;
+    max-width: 1200px;
+}
+
+/* Quality Indicator */
+.quality-indicator {
+    background: white;
+    border-radius: 10px;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.quality-indicator-inner {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 16px 20px;
+    width: 100%;
+}
+
+.quality-text {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 15px;
+    color: #4caf50;
+    line-height: normal;
+}
+
+.quality-icon {
+    background: #4caf50;
+    border-radius: 6px;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+}
+
+/* Playback Section */
+.playback-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.playback-title {
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 16px;
+    color: #0b0754;
+    text-align: right;
+    width: 100%;
+    white-space: pre-wrap;
+    line-height: normal;
+}
+
+.playback-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.playback-item {
+    background: white;
+    border-radius: 12px;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.playback-item-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    width: 100%;
+}
+
+.playback-actions {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-shrink: 0;
+}
+
+.playback-action-btn {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.playback-action-btn:hover {
+    transform: scale(1.05);
+}
+
+.playback-action-btn svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.playback-left {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-shrink: 0;
+    flex: 1;
+}
+
+.playback-info {
+    display: flex;
+    flex-direction: column;
+    font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
+    font-weight: 500;
+    gap: 4px;
+    height: 56px;
+    align-items: flex-start;
+    line-height: normal;
+    font-style: normal;
+    flex-shrink: 0;
+    white-space: pre-wrap;
+}
+
+.playback-name {
+    font-size: 14px;
+    color: #0b0754;
+    width: 100%;
+}
+
+.playback-duration {
+    font-size: 12px;
+    color: #a7bccc;
+    width: 100%;
+}
+
+.playback-sound-wave {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px;
+    border-radius: 50px;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(-45deg, rgb(250, 11, 103) 64.645%, rgb(128, 202, 255) 135.36%);
+}
+
+.sound-wave-small {
+    background: #0b0754;
+    position: relative;
+    border-radius: 32px;
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+}
+
+.sound-wave-small .bar-small {
+    position: absolute;
+    background: white;
+    border-radius: 10px;
+}
+
+.sound-wave-small .bar1-small {
+    bottom: 34.38%;
+    left: 25%;
+    right: 62.5%;
+    top: 34.38%;
+}
+
+.sound-wave-small .bar2-small {
+    bottom: 25%;
+    left: 43.75%;
+    right: 43.75%;
+    top: 25%;
+}
+
+.sound-wave-small .bar3-small {
+    bottom: 34.38%;
+    left: 62.5%;
+    right: 25%;
+    top: 34.38%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .exam-content {
+        flex-direction: column;
+    }
+
+    .question-panel {
+        width: 100%;
+        max-height: none;
+    }
+
+    .recording-panel {
+        width: 100%;
+        max-height: none;
+    }
+}

@@ -15,36 +15,55 @@ let examData = {
 
 /**
  * Generate carousel data from mockExamData
- * This ensures single source of truth - all exam data comes from writing-exam.js
+ * This ensures single source of truth - all exam data comes from writing-exam.js and speaking-exam.js
  */
 function generateExamDataFromMock() {
     examData.speaking = [];
     examData.writing = [];
     
-    // Check if mockExamData is available from writing-exam.js
-    if (typeof mockExamData === 'undefined') {
-        console.warn('mockExamData not loaded yet. Make sure writing-exam.js is loaded before exam.js');
-        return;
+    // Check if writing exam data is available from writing-exam.js
+    if (typeof mockExamData !== 'undefined') {
+        Object.keys(mockExamData).forEach(examId => {
+            const exam = mockExamData[examId];
+            const carouselItem = {
+                id: examId,
+                title: exam.title,
+                description: exam.title,
+                type: exam.type,
+                difficulty: 'متوسط',
+                duration: Math.round(exam.totalTime / 60) + ' دقیقه',
+                questions: exam.totalQuestions
+            };
+            
+            if (exam.type === 'نوشتاری') {
+                examData.writing.push(carouselItem);
+            }
+        });
     }
     
-    Object.keys(mockExamData).forEach(examId => {
-        const exam = mockExamData[examId];
-        const carouselItem = {
-            id: examId,
-            title: exam.title,
-            description: exam.title,
-            type: exam.type,
-            difficulty: 'متوسط',
-            duration: Math.round(exam.totalTime / 60) + ' دقیقه',
-            questions: exam.totalQuestions
-        };
-        
-        if (exam.type === 'گفتاری') {
-            examData.speaking.push(carouselItem);
-        } else if (exam.type === 'نوشتاری') {
-            examData.writing.push(carouselItem);
-        }
-    });
+    // Check if speaking exam data is available from speaking-exam.js
+    if (typeof mockSpeakingExamData !== 'undefined') {
+        Object.keys(mockSpeakingExamData).forEach(examId => {
+            const exam = mockSpeakingExamData[examId];
+            const carouselItem = {
+                id: examId,
+                title: exam.title,
+                description: exam.title,
+                type: exam.type,
+                difficulty: 'متوسط',
+                duration: Math.round(exam.totalTime / 60) + ' دقیقه',
+                questions: exam.totalQuestions
+            };
+            
+            if (exam.type === 'گفتاری') {
+                examData.speaking.push(carouselItem);
+            }
+        });
+    }
+    
+    if (examData.speaking.length === 0 && examData.writing.length === 0) {
+        console.warn('No exam data loaded. Make sure writing-exam.js and speaking-exam.js are loaded before exam.js');
+    }
 }
 
 /**
@@ -278,9 +297,9 @@ function initializeExamButtons() {
             const card = this.closest('.exam-card');
             const examId = card?.id;
             const examTitle = card?.querySelector('.card-title')?.textContent;
+            const examTypeTag = card?.querySelector('.type-tag')?.textContent?.trim();
             
-            console.log('Starting exam:', examTitle, 'ID:', examId);
-            console.log('Available exam data:', mockExamData);
+            console.log('Starting exam:', examTitle, 'ID:', examId, 'Type:', examTypeTag);
             
             // Add visual feedback
             this.style.transform = 'scale(0.95)';
@@ -288,10 +307,16 @@ function initializeExamButtons() {
                 this.style.transform = '';
             }, 150);
             
-            // Navigate to writing exam template page with exam ID as query parameter
+            // Navigate to correct exam page based on type
             if (examId) {
-                // Use absolute path with Django URL pattern
-                window.location.href = `/team7/writing-exam/?exam=${examId}`;
+                // Determine exam type from card and navigate accordingly
+                if (examTypeTag === 'گفتاری') {
+                    window.location.href = `/team7/speaking-exam/?exam_id=${examId}`;
+                } else if (examTypeTag === 'نوشتاری') {
+                    window.location.href = `/team7/writing-exam/?exam_id=${examId}`;
+                } else {
+                    alert('خطا: نوع آزمون نامشخص است');
+                }
             } else {
                 alert('خطا: شناسه آزمون یافت نشد');
             }
