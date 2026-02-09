@@ -37,9 +37,9 @@ def exams(request):
     return render(request, f"{TEAM_NAME}/exam.html")
 
 
-def exam_template(request):
-    """Serve team7 exam template page (exam taking interface)."""
-    return render(request, f"{TEAM_NAME}/exam-template.html")
+def writing_exam(request):
+    """Serve team7 writing exam page (writing exam taking interface)."""
+    return render(request, f"{TEAM_NAME}/writing-exam.html")
 
 
 @csrf_exempt

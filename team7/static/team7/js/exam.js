@@ -5,87 +5,47 @@
 
 // ==================== Mock Data ====================
 /**
- * Carousel data for exam listing page - minimal data for rendering cards
- * For exam questions, see exam-template.js
+ * Carousel data for exam listing page
+ * Generated from mockExamData (writing-exam.js) to avoid redundancy
  */
-const examData = {
-    speaking: [
-        {
-            id: 'speak-1',
-            title: 'توصیف یک مکان مورد علاقه',
-            description: 'در این آزمون باید درباره مکانی که دوست دارید صحبت کنید و دلایل علاقه خود را بیان کنید',
-            type: 'گفتاری',
-            difficulty: 'آسان',
-            duration: '10 دقیقه',
-            questions: 3
-        },
-        {
-            id: 'speak-2',
-            title: 'بحث درباره فناوری و آموزش',
-            description: 'نظرات خود را درباره تأثیر فناوری بر سیستم آموزشی بیان کنید',
-            type: 'گفتاری',
-            difficulty: 'متوسط',
-            duration: '15 دقیقه',
-            questions: 3
-        },
-        {
-            id: 'speak-3',
-            title: 'معرفی خود و علایق شخصی',
-            description: 'خودتان را معرفی کنید و درباره علایق و سرگرمی‌های خود صحبت کنید',
-            type: 'گفتاری',
-            difficulty: 'آسان',
-            duration: '10 دقیقه',
-            questions: 2
-        },
-        {
-            id: 'speak-4',
-            title: 'بیان نظر درباره یک موضوع اجتماعی',
-            description: 'نظرات خود درباره یک موضوع اجتماعی جاری را بیان کنید و دلایل آن را توضیح دهید',
-            type: 'گفتاری',
-            difficulty: 'سخت',
-            duration: '20 دقیقه',
-            questions: 4
-        }
-    ],
-    writing: [
-        {
-            id: 'write-1',
-            title: 'نامه رسمی',
-            description: 'یک نامه رسمی برای درخواست اطلاعات بنویسید',
-            type: 'نوشتاری',
-            difficulty: 'آسان',
-            duration: '20 دقیقه',
-            questions: 1
-        },
-        {
-            id: 'write-2',
-            title: 'تحلیل متن آکادمیک',
-            description: 'متن آکادمیک داده شده را تحلیل کنید و نظرات خود را بیان کنید',
-            type: 'نوشتاری',
-            difficulty: 'متوسط',
-            duration: '25 دقیقه',
-            questions: 1
-        },
-        {
-            id: 'write-3',
-            title: 'داستان کوتاه',
-            description: 'با توجه به موضوع داده شده یک داستان کوتاه بنویسید',
-            type: 'نوشتاری',
-            difficulty: 'آسان',
-            duration: '25 دقیقه',
-            questions: 1
-        },
-        {
-            id: 'write-4',
-            title: 'مقاله توصیفی',
-            description: 'موضوعی را برگزینید و یک مقاله توصیفی بنویسید',
-            type: 'نوشتاری',
-            difficulty: 'سخت',
-            duration: '40 دقیقه',
-            questions: 1
-        }
-    ]
+let examData = {
+    speaking: [],
+    writing: []
 };
+
+/**
+ * Generate carousel data from mockExamData
+ * This ensures single source of truth - all exam data comes from writing-exam.js
+ */
+function generateExamDataFromMock() {
+    examData.speaking = [];
+    examData.writing = [];
+    
+    // Check if mockExamData is available from writing-exam.js
+    if (typeof mockExamData === 'undefined') {
+        console.warn('mockExamData not loaded yet. Make sure writing-exam.js is loaded before exam.js');
+        return;
+    }
+    
+    Object.keys(mockExamData).forEach(examId => {
+        const exam = mockExamData[examId];
+        const carouselItem = {
+            id: examId,
+            title: exam.title,
+            description: exam.title,
+            type: exam.type,
+            difficulty: 'متوسط',
+            duration: Math.round(exam.totalTime / 60) + ' دقیقه',
+            questions: exam.totalQuestions
+        };
+        
+        if (exam.type === 'گفتاری') {
+            examData.speaking.push(carouselItem);
+        } else if (exam.type === 'نوشتاری') {
+            examData.writing.push(carouselItem);
+        }
+    });
+}
 
 /**
  * Hardcoded history data - can be replaced with API calls in future
@@ -263,6 +223,9 @@ function renderHistoryTable(items) {
  * Initialize carousel functionality
  */
 function initializeCarousels() {
+    // Generate carousel data from mockExamData first
+    generateExamDataFromMock();
+    
     const speakingCarousel = document.getElementById('speakingCarousel');
     const writingCarousel = document.getElementById('writingCarousel');
     
@@ -325,10 +288,10 @@ function initializeExamButtons() {
                 this.style.transform = '';
             }, 150);
             
-            // Navigate to exam template page with exam ID as query parameter
+            // Navigate to writing exam template page with exam ID as query parameter
             if (examId) {
                 // Use absolute path with Django URL pattern
-                window.location.href = `/team7/exam-template/?exam=${examId}`;
+                window.location.href = `/team7/writing-exam/?exam=${examId}`;
             } else {
                 alert('خطا: شناسه آزمون یافت نشد');
             }
