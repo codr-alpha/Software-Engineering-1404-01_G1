@@ -122,3 +122,8 @@ else:
 
 
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
+# AI Services Configuration (Team 7)
+AI_GENERATOR_API_KEY = env("AI_GENERATOR_API_KEY", default="")
+AI_GENERATOR_BASE_URL = env("AI_GENERATOR_BASE_URL", default="https://api.gpt4-all.xyz/v1")
+AI_GENERATOR_MODEL = env("AI_GENERATOR_MODEL", default="gemini-3-flash-preview")
