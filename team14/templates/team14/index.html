@@ -447,6 +447,12 @@
       bottom: -200px;
       left: -200px;
     }
+    .stat-no-exam {
+  color: #95a5a6;
+  font-style: italic;
+  font-size: 1.1rem;
+}
+
   </style>
 </head>
 
@@ -533,14 +539,17 @@
     </div>
 
     <!-- Stats Bar -->
+ <!-- Stats Bar -->
     <div class="stats-bar">
       <div class="stat-item">
-        نمره اخرین آزمون : <span class="stat-value">25/30</span>
-      </div>
-      <div class="stat-item">
-        زمان اخرین تمرین : <span class="stat-value">12 دقیقه</span>
+        {% if has_taken_exam %}
+      نمره آخرین آزمون:    <span class="stat-value">{{ last_score|floatformat:1 }}/30</span>
+        {% else %}
+      نمره آخرین آزمون:    <span class="stat-value stat-no-exam">—</span>
+        {% endif %}
       </div>
     </div>
+
 
     <!-- Footer -->
     <footer class="footer">
