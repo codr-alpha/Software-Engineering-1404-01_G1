@@ -11,7 +11,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 def text_analysis_page(request):
     return render(request, 'team8/text_analysis.html')
 
-def api_get_reading_history(request):
+def api_get_history(request):
     user_id = 1 
     readings = ReadingMaterial.objects.filter(user_id=user_id).order_by('-created_at')
     

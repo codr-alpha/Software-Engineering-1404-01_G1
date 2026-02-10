@@ -7,5 +7,5 @@ urlpatterns = [
     path("ping/", views.ping),
     path('analysis/', analysis_views.text_analysis_page, name='analysis_page'),
     path('api/reading-history/', analysis_views.api_get_history, name='api_history'),
-    path('api/text-analysis/', analysis_views.api_run_analysis, name='api_run_analysis'),
+    path('api/text-analysis/', analysis_views.api_perform_analysis, name='api_run_analysis'),
 ]
