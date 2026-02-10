@@ -22,3 +22,7 @@ media/
 node_modules/
 dist/
 build/
+
+win_scripts/
+
+

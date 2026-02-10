@@ -23,7 +23,7 @@ docker network inspect app404_net *> $null; if ($LASTEXITCODE -ne 0) { docker ne
 docker compose up -d --build
 
 foreach ($t in 1..15) {
-  $composePath = "..\team$t\docker-compose.yml"
+  $composePath = "C:\Users\Sina\Desktop\Se_project\Software-Engineering-1404-01_G8\team$t\docker-compose.yml"
   if (Test-Path $composePath) {
     $env:TEAM_PORT = "$($TeamPort[$t])"
     Write-Host ("Starting team{0} on port {1} ..." -f $t, $env:TEAM_PORT)
