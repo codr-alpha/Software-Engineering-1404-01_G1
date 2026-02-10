@@ -25,9 +25,9 @@ class WritingEvaluator:
         """Initialize LLM client from Django settings."""
         self.client = OpenAI(
             api_key=getattr(settings, 'AI_GENERATOR_API_KEY', 'PLACEHOLDER_KEY'),
-            base_url="https://api.gpt4-all.xyz/v1"
+            base_url=getattr(settings, 'AI_GENERATOR_BASE_URL', 'https://api.gpt4-all.xyz/v1')
         )
-        self.model = "gemini-3-flash-preview"
+        self.model = getattr(settings, 'AI_GENERATOR_MODEL', 'gemini-3-flash-preview')
 
     def validate_length(self, text):
         """Validate word count per SRS FR-WR-01.
@@ -119,9 +119,9 @@ class SpeakingEvaluator:
         """Initialize OpenAI client for both ASR (Whisper) and LLM."""
         self.client = OpenAI(
             api_key=getattr(settings, 'AI_GENERATOR_API_KEY', 'PLACEHOLDER_KEY'),
-            base_url="https://api.gpt4-all.xyz/v1"
+            base_url=getattr(settings, 'AI_GENERATOR_BASE_URL', 'https://api.gpt4-all.xyz/v1')
         )
-        self.model = "gemini-3-flash-preview"
+        self.model = getattr(settings, 'AI_GENERATOR_MODEL', 'gemini-3-flash-preview')
 
     def validate_audio_file(self, audio_file):
         """Validate audio file format and size per SRS FR-SP-01.

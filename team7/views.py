@@ -20,12 +20,20 @@ def ping(request):
 
 def index(request):
     """Serve team7 home page (landing page)."""
-    return render(request, f"{TEAM_NAME}/index.html")
+    context = {
+        'user': request.user,
+        'is_authenticated': request.user.is_authenticated,
+    }
+    return render(request, f"{TEAM_NAME}/index.html", context)
 
 
 def dashboard(request):
     """Serve team7 dashboard page (user dashboard)."""
-    return render(request, f"{TEAM_NAME}/dashboard.html")
+    context = {
+        'user': request.user,
+        'is_authenticated': request.user.is_authenticated,
+    }
+    return render(request, f"{TEAM_NAME}/dashboard.html", context)
 
 
 @csrf_exempt
