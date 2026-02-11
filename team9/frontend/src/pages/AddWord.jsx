@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import config from "../config";
 
 export default function AddWord() {
@@ -51,9 +51,9 @@ export default function AddWord() {
   return (
     <div className="t9-page" dir="rtl" lang="fa">
       <header className="t9-topbar">
-        <button className="t9-pillBtn" onClick={() => navigate("/microservices")}>خانه</button>
+        <button className="t9-pillBtn" onClick={() => window.location.href = "http://localhost:8000"}>خانه</button>
         <h1 className="t9-title">یادگیری مستمر با Tick 8</h1>
-        <button className="t9-pillBtn">حساب کاربری</button>
+        <Link to="/dashboard" className="t9-pillBtn" style={{textDecoration: 'none'}}>حساب کاربری</Link>
       </header>
 
       <section className="t9-panel t9-addword">

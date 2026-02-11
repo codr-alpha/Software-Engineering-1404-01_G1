@@ -10,6 +10,7 @@ from datetime import date
 from .models import Lesson, Word
 from .serializers import LessonSerializer, WordSerializer
 from .filters import WordFilter
+from django.db.models import Count, Q
 
 TEAM_NAME = "team9"
 
@@ -23,6 +24,57 @@ def ping(request):
 def base(request):
     # Renders the main index page
     return render(request, f"{TEAM_NAME}/index.html")
+
+@api_login_required
+def dashboard_stats(request):
+    """
+    Returns dashboard statistics for the authenticated user.
+    
+    Returns:
+    - user_name: Name of the authenticated user
+    - total_lessons: Total number of lessons created by user
+    - total_words: Total number of words across all lessons
+    - completed_lessons: Number of lessons with 100% progress
+    - average_progress: Average progress across all lessons
+    """
+    # Use a default user_id for testing/demo purposes
+    # In production, this should come from properly authenticated user
+    user_id = 1
+    
+    # Get user name from request - try multiple fields
+    user_name = 'کاربر'
+    if hasattr(request.user, 'first_name') and request.user.first_name:
+        user_name = f"{request.user.first_name}"
+        if hasattr(request.user, 'last_name') and request.user.last_name:
+            user_name += f" {request.user.last_name}"
+    elif hasattr(request.user, 'email') and request.user.email:
+        user_name = str(request.user.email).split('@')[0]
+    elif hasattr(request.user, 'username') and request.user.username:
+        user_name = str(request.user.username)
+    
+    # Get all lessons for this user
+    lessons = Lesson.objects.filter(user_id=user_id)
+    total_lessons = lessons.count()
+    
+    # Calculate total words
+    total_words = Word.objects.filter(lesson__user_id=user_id).count()
+    
+    # Calculate completed lessons (100% progress)
+    completed_lessons = sum(1 for lesson in lessons if lesson.progress_percent >= 100.0)
+    
+    # Calculate average progress
+    if total_lessons > 0:
+        average_progress = sum(lesson.progress_percent for lesson in lessons) / total_lessons
+    else:
+        average_progress = 0.0
+    
+    return JsonResponse({
+        "user_name": user_name,
+        "total_lessons": total_lessons,
+        "total_words": total_words,
+        "completed_lessons": completed_lessons,
+        "average_progress": round(average_progress, 1)
+    })
 
 # --- New REST API ViewSets ---
 

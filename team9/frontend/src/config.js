@@ -11,4 +11,5 @@ export default {
   API_BASE_URL,
   LESSONS_ENDPOINT: '/team9/api/lessons/',
   WORDS_ENDPOINT: '/team9/api/words/',
+  DASHBOARD_ENDPOINT: '/team9/api/dashboard/',
 };

@@ -128,8 +128,10 @@ export default function LessonDetail() {
         <div className="t9-topbarLeft">
           <button className="t9-pillBtn" onClick={() => navigate("/microservices")}>بازگشت</button>
           <button className="t9-pillBtn" onClick={() => navigate(`/microservices/${id}/review`)}>مرور لغات</button>
+
         </div>
         <h1 className="t9-title">{lesson?.title}</h1>
+        <div style={{ width: "120px" }}></div>
       </header>
 
       <section className="t9-panel">

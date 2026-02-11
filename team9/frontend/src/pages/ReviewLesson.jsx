@@ -106,7 +106,7 @@ export default function ReviewLesson() {
           بازگشت
         </button>
         <h1 className="t9-title">مرور: {lesson.title}</h1>
-        <button className="t9-pillBtn" onClick={() => navigate("/microservices")}>
+        <button className="t9-pillBtn" onClick={() => window.location.href = "http://localhost:8000"}>
           خانه
         </button>
       </header>
