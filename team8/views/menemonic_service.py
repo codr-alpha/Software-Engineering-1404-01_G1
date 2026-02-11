@@ -16,7 +16,7 @@ image_client = InferenceClient(
 )
 
 
-def text_analysis_page(request):
+def menemonic_page(request):
     return render(request, 'team8/menemonic_page.html')
 
 def generate_story(request):
