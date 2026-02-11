@@ -644,7 +644,27 @@ function initializeChatIcon() {
 /**
  * Initialize all exam page specific functionality
  */
-function initializeExamPage() {
+async function initializeExamPage() {
+    // Wait for auth to be ready
+    if (window.authManager && window.authManager.isInitialized && !window.authManager.isInitialized()) {
+        await window.authManager.initialize();
+    }
+    
+    // Check authentication and update user profile
+    if (window.authManager) {
+        const isAuthenticated = await window.authManager.checkAuthStatus();
+        const currentUser = window.authManager.getCurrentUser();
+        
+        if (isAuthenticated && currentUser) {
+            // Update user name in header
+            const userNameElement = document.querySelector('.user-name');
+            if (userNameElement) {
+                const fullName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim();
+                userNameElement.textContent = fullName || currentUser.email || 'کاربر';
+            }
+        }
+    }
+    
     // Initialize carousels with data
     initializeCarousels();
     
