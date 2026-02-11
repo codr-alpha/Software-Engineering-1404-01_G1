@@ -1,5 +1,3 @@
-Django>=4.2
-gunicorn
-psycopg2-binary
+# Team 7 specific requirements
+# These are installed on top of the main project requirements
 openai
-python-dotenv

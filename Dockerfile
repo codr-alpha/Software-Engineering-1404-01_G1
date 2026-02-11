@@ -12,6 +12,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install team7 specific requirements for TOEFL AI evaluation
+COPY team7/requirements.txt /app/team7/requirements.txt
+RUN pip install --no-cache-dir -r /app/team7/requirements.txt
+
 COPY . /app/
 
 EXPOSE 8000

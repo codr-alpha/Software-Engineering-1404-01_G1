@@ -26,7 +26,11 @@
                 </div>
                 <div class="header-actions">
                     <div class="user-profile">
-                        <p class="user-name">سارا احمدی</p>
+                        {% if user.is_authenticated %}
+                            <p class="user-name">{{ user.first_name }} {{ user.last_name }}{% if not user.first_name %}{{ user.email }}{% endif %}</p>
+                        {% else %}
+                            <p class="user-name">مهمان</p>
+                        {% endif %}
                         <div class="user-avatar"></div>
                     </div>
                 </div>
@@ -37,26 +41,22 @@
         <div class="main-content">
             <!-- Sidebar -->
             <aside class="sidebar">
-                <div class="menu-item active">
+                <a href="{% url 'team7:dashboard' %}" class="menu-item active">
                     <div class="menu-icon"></div>
                     <span>داشبورد</span>
-                </div>
-                <div class="menu-item">
+                </a>
+                <a href="{% url 'team7:exams' %}#writing" class="menu-item">
                     <div class="menu-icon"></div>
                     <span>آزمون نوشتاری</span>
-                </div>
-                <div class="menu-item">
+                </a>
+                <a href="{% url 'team7:exams' %}#speaking" class="menu-item">
                     <div class="menu-icon"></div>
                     <span>آزمون گفتاری</span>
-                </div>
-                <div class="menu-item">
+                </a>
+                <a href="#statistics-section" class="menu-item">
                     <div class="menu-icon"></div>
-                    <span>گزارشات</span>
-                </div>
-                <div class="menu-item">
-                    <div class="menu-icon"></div>
-                    <span>تنظیمات</span>
-                </div>
+                    <span>آمار و تحلیل عملکرد</span>
+                </a>
             </aside>
 
             <!-- Content Wrapper -->
@@ -167,7 +167,7 @@
                 </section>
 
                 <!-- Statistics Section -->
-                <section class="statistics-section">
+                <section class="statistics-section" id="statistics-section">
                     <h2 class="section-title">آمار و تحلیل عملکرد</h2>
                     <div class="stats-grid">
                         <div class="stat-card">
@@ -208,10 +208,10 @@
         </div>
     </div>
 
-    <!-- JavaScript Files -->
-    <script src="{% static 'team7/js/shared.js' %}"></script>
-    <script src="{% static 'team7/js/dashboard.js' %}"></script>
-</body>
-</html>
+    <!-- JavaScript Files - Load auth.js first -->
+    <script src="{% static 'team7/js/auth.js' %}"></script>
+    <script src="{% static 'team7/js/auth-debug.js' %}"></script>
+    <script src="{% static 'team7/js/shared.js' %}" defer></script>
+    <script src="{% static 'team7/js/dashboard.js' %}" defer></script>
 </body>
 </html>

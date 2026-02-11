@@ -1,3 +1,7 @@
+# Team 7 Docker Compose Configuration
+# Per deployment.txt: Each team has only gateway service here
+# The main team7 Django service runs from the root docker-compose.yml
+
 services:
   gateway:
     image: nginx:alpine
@@ -6,38 +10,7 @@ services:
     volumes:
       - ./gateway.conf:/etc/nginx/conf.d/default.conf:ro
     environment:
-      - CORE_BASE_URL=http://team7:8000
-    depends_on:
-      - team7
-    networks:
-      - app404
-  #   depends_on:
-  #     - frontend
-  #     - backend
-  
-  # frontend:
-  #   image: traefik/whoami
-  #   command: ["-port=5173"]
-  #   networks:
-  #     - app404
-
-  # backend:
-  #   image: traefik/whoami
-  #   command: ["-port=3000"]
-  #   networks:
-  #     - app404
-
-  team7:
-    build: .
-    container_name: team7_service
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/app
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DJANGO_SETTINGS_MODULE=core.settings
-    expose:
-      - "8000"
+      - CORE_BASE_URL=http://core:8000
     networks:
       - app404
 
