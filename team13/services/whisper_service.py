@@ -6,7 +6,7 @@ We use openai-whisper package for this.
 This image build should be with VPN because we are banned.
 The model will be cached in the Docker image during build and no network is needed at runtime.
 """
-import django.conf.settings
+from django.conf import settings
 import threading
 import whisper
 
@@ -26,7 +26,7 @@ class WhisperTranscriber:
 
     def _initialize(self) -> None:
         print("Initializing Whisper transcription service...")
-        self.model = whisper.load_model(getattr(django.conf.settings, "WHISPER_MODEL_SIZE", "base"))
+        self.model = whisper.load_model(getattr(settings, "WHISPER_MODEL_SIZE", "base"))
         self.is_ready = True
         print("Whisper service ready!")
 

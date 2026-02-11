@@ -11,12 +11,13 @@ class Prompt(base_models.TimeModel, base_models.HistoricalModel):
     """
     name = models.CharField(max_length=100)
     prompt_text = models.TextField()
+    is_active = models.BooleanField(default=False)
 
     def get_prompt(self, _question: question.Question, student_response: str):
         base_prompt = f"{self.prompt_text}\n\n"
-        if _question.question_type == "writing":
+        if _question.question_type == question.Question.WRITING_QUESTION_TYPE:
             return base_prompt + self._get_writing_prompt(_question, student_response)
-        elif _question.question_type == "speaking":
+        elif _question.question_type == question.Question.SPEAKING_QUESTION_TYPE:
             return base_prompt + self._get_speaking_prompt(_question, student_response)
 
     def _get_writing_prompt(self, _question: question.Question, student_response: str):

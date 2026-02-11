@@ -24,7 +24,7 @@ class BaseGradeResult(base_models.TimeModel, base_models.HistoricalModel):
 
 
 class WritingGradeResult(BaseGradeResult):
-    """Stores detailed writing assessment scores across ETS rubric categories."""
+    """Stores detailed writing assessment scores across ETS TOEFL rubric categories."""
     task_achievement = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(4)])
     coherence = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(4)])
     vocabulary = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(4)])

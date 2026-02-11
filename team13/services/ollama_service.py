@@ -6,7 +6,7 @@ We use ollama package for this.
 This image build should be with VPN because we are banned.
 The model will be cached in the Docker image during build and no network is needed at runtime.
 """
-import django.conf.settings
+from django.conf import settings
 import threading
 import ollama
 import subprocess
@@ -36,7 +36,7 @@ class OllamaLLM:
         )
         time.sleep(4)  # Wait for server to start
         # Load model from settings
-        self.model_name = getattr(django.conf.settings, "OLLAMA_MODEL", "gemma3:4b")
+        self.model_name = getattr(settings, "OLLAMA_MODEL", "gemma3:4b")
         # Warm up model (load into memory)
         ollama.chat(
             model=self.model_name,
