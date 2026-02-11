@@ -1,15 +1,19 @@
-import os, requests, json
+import os, requests, json, io
 from django.shortcuts import render
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST
+from django.core.files.base import ContentFile
 from groq import Groq
 from ..models.word import Word
 from ..models.menemonic import WordStory
 from dotenv import load_dotenv
+from huggingface_hub import InferenceClient
 
 load_dotenv()
 story_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-image_client = None  # TODO: Replace with your image generation client (e.g., OpenAI, Stability, etc.)
+image_client = InferenceClient(
+    provider="nscale",
+    api_key="IMAGE_GENERATION_API_KEY",
+)
 
 
 def text_analysis_page(request):
@@ -32,7 +36,7 @@ def generate_story(request):
         word = Word.objects.get(id=word_id)
 
         prompt = f"""
-        Write a vivid 2–3 paragraph contextual story to help memorize the word: "{word.word}".
+        Write a vivid 1–3 paragraph contextual story to help memorize the word: "{word.word}".
         The story must clearly demonstrate the meaning of the word in context.
         Keep it engaging and easy to remember.
         """
@@ -77,33 +81,32 @@ def generate_image(request):
 
         prompt = f"Create a memorable illustrative image representing the word '{word_story.word.word}'."
 
-        # ----------------------------
-        # Replace this block with your real image generation API
-        # ----------------------------
-        # Example placeholder logic
-        image_url = "https://via.placeholder.com/512x512.png?text=" + word_story.word.word
+        # 1. Generate the image. This returns a PIL.Image object.
+        image = image_client.text_to_image(
+            prompt,
+            model="stabilityai/stable-diffusion-xl-base-1.0",
+        )
 
-        # Download and save image locally
-        response = requests.get(image_url)
-        if response.status_code == 200:
-            file_name = f"{word_story.word.word}_{word_story.id}.png"
-            file_path = os.path.join("media/word_stories/", file_name)
+        # 2. Prepare the filename
+        file_name = f"{word_story.word.word}_{word_story.id}.png"
 
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, "wb") as f:
-                f.write(response.content)
+        # 3. Create a BytesIO buffer to hold the image data in memory
+        buffer = io.BytesIO()
+        
+        # 4. Save the PIL image into the buffer as a PNG
+        image.save(buffer, format="PNG")
+        
+        # 5. Save the buffer content to the Django model field
+        # ContentFile wraps the bytes so Django treats it like an uploaded file
+        word_story.image.save(file_name, ContentFile(buffer.getvalue()), save=True)
 
-            word_story.image = f"word_stories/{file_name}"
-            word_story.save()
-
-            return JsonResponse({
-                "message": "Image generated successfully",
-                "image_url": word_story.image.url
-            })
-        else:
-            return JsonResponse({"error": "Failed to download image"}, status=500)
+        return JsonResponse({
+            "message": "Image generated successfully",
+            "image_url": word_story.image.url
+        })
 
     except WordStory.DoesNotExist:
         return JsonResponse({"error": "WordStory not found"}, status=404)
     except Exception as e:
+        print(f"Error generating image: {e}") # Helpful for debugging
         return JsonResponse({"error": str(e)}, status=500)
