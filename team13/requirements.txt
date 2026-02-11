@@ -2,11 +2,11 @@ Django==4.2.27
 PyJWT
 django-environ
 django-cors-headers
+django-simple-history
 mysqlclient
 PyMySQL
 gunicorn
 whitenoise
-openai
+openai-whisper
 djangorestframework
-django-filter
-dj-database-url
+ollama==0.1.9

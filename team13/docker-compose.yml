@@ -1,31 +1,31 @@
 services:
-  gateway:
-    image: nginx:alpine
+  team13-app:
+    build: .
+    image: team13-grader:latest
     ports:
-      - "${TEAM_PORT}:80"
+      - "${TEAM_PORT}:8000"
     volumes:
-      - ./gateway.conf:/etc/nginx/conf.d/default.conf:ro
-    environment:
-      - CORE_BASE_URL=http://core:8000
+      - ./media:/app/media/team13
+      # Persist ollama models
+      - ollama_models:/root/.ollama/models
+      - ./static:/app/static/team13
+    env_file:
+      - .env
     networks:
       - app404
-  #   depends_on:
-  #     - frontend
-  #     - backend
-
-  # frontend:
-  #   image: traefik/whoami
-  #   command: ["-port=5173"]
-  #   networks:
-  #     - app404
-
-  # backend:
-  #   image: traefik/whoami
-  #   command: ["-port=3000"]
-  #   networks:
-  #     - app404
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 4G
 
 networks:
   app404:
     external: true
     name: app404_net
+
+volumes:
+  ollama_models:
+    name: team13_ollama_models
