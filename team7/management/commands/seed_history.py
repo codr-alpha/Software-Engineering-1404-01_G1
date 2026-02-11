@@ -88,6 +88,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('No writing questions found, skipping writing history'))
             return
         
+        # Get the exam from the question
+        writing_exam = writing_question.exam
+        
         for i in range(10):
             # Create evaluation with random data
             eval_score = round(random.uniform(2.0, 5.0), 1)
@@ -96,6 +99,7 @@ class Command(BaseCommand):
             evaluation = Evaluation.objects.create(
                 user_id=user_id,
                 question=writing_question,
+                exam=writing_exam,
                 task_type=TaskType.WRITING,
                 submitted_text=self._generate_essay(),
                 overall_score=eval_score,
@@ -123,6 +127,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('No speaking questions found, skipping speaking history'))
             return
         
+        # Get the exam from the question
+        speaking_exam = speaking_question.exam
+        
         for i in range(10):
             # Create evaluation with random data
             eval_score = round(random.uniform(2.0, 5.0), 1)
@@ -131,6 +138,7 @@ class Command(BaseCommand):
             evaluation = Evaluation.objects.create(
                 user_id=user_id,
                 question=speaking_question,
+                exam=speaking_exam,
                 task_type=TaskType.SPEAKING,
                 audio_path=f'/media/audio/speaking_test_{i}.wav',
                 transcript_text=self._generate_transcript(),
@@ -140,7 +148,7 @@ class Command(BaseCommand):
             )
             
             # Add detailed scores
-            criteria = ['Delivery', 'Language Use', 'Fluency', 'Coherence']
+            criteria = ['Delivery', 'Language Use', 'Topic Development']
             for criterion in criteria:
                 DetailedScore.objects.create(
                     evaluation=evaluation,
