@@ -20,7 +20,4 @@ team_patterns = [
     path('favicon.ico', views.favicon, name='favicon'),
 ]
 
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('team7/', include((team_patterns, 'team7'), namespace='team7')),
-]
+urlpatterns = team_patterns
