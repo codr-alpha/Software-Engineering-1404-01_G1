@@ -11,6 +11,8 @@ from django.http import JsonResponse
 from django.utils import timezone
 from .models import Passage, Question, UserSession, UserAnswer, AntiCheatLog
 import json
+from .models import UserSession, Question, Option, UserAnswer
+
 
 
 TEAM_NAME = "team14"
@@ -249,7 +251,6 @@ def submit_answer(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
-
 def finish_practice(request, session_id):
     session = get_object_or_404(
         UserSession,
@@ -258,10 +259,15 @@ def finish_practice(request, session_id):
     )
 
     answers = UserAnswer.objects.filter(session=session)
-    correct_count = sum(
-        1 for a in answers
-        if a.selected_option and a.selected_option.is_correct
-    )
+    correct_count = 0
+
+    for answer in answers:
+        if answer.selected_option and answer.selected_option.is_correct:
+            correct_count += 1
+            answer.is_correct = True
+        else:
+            answer.is_correct = False
+        answer.save()
 
     total_questions = session.passage.questions.count()
 
@@ -273,4 +279,49 @@ def finish_practice(request, session_id):
     return redirect('team14:practice_result', session_id=session.id)
 
 
+def practice_result(request, session_id):
+    session = get_object_or_404(
+        UserSession,
+        id=session_id,
+        user_id=request.user.id
+    )
+
+    questions = Question.objects.filter(
+        passage=session.passage
+    ).prefetch_related('options')
+
+    answers = {
+        ua.question_id: ua.selected_option_id
+        for ua in UserAnswer.objects.filter(session=session)
+    }
+
+    result_data = []
+    correct_count = 0
+
+    for q in questions:
+        correct_option = q.options.filter(is_correct=True).first()
+        user_option_id = answers.get(q.id)
+
+        is_correct = user_option_id == (correct_option.id if correct_option else None)
+        if is_correct:
+            correct_count += 1
+
+        result_data.append({
+            "question_id": q.id,
+            "question_text": q.question_text,
+            "correct_option": correct_option.text if correct_option else "—",
+            "user_option": (
+                q.options.get(id=user_option_id).text
+                if user_option_id else "بدون پاسخ"
+            ),
+            "is_correct": is_correct
+        })
+
+    return render(request, "team14/practice_result.html", {
+        "session": session,
+        "total_questions": questions.count(),
+        "correct_count": correct_count,
+        "results": result_data,
+        "level": session.passage.level
+    })
 

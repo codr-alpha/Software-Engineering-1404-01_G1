@@ -130,18 +130,6 @@
             color: #2d3748;
         }
 
-        .timer {
-            background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-weight: 700;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
         .progress-dots {
             display: flex;
             gap: 8px;
@@ -381,6 +369,66 @@
             background: #ebf8ff;
         }
 
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 360px;
+            text-align: center;
+        }
+
+        .modal-box h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: #2d3748;
+        }
+
+        .modal-box p {
+            color: #718096;
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 12px;
+        }
+
+        .btn-confirm {
+            background: #e53935;
+            color: #fff;
+        }
+
+        .btn-confirm:hover {
+            background: #c62828;
+        }
+
+        .btn-cancel {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-cancel:hover {
+            background: #bdbdbd;
+        }
+
         /* Responsive */
         @media (max-width: 1200px) {
             .main-content {
@@ -421,7 +469,7 @@
             </div>
             <nav class="nav-links">
                 <a href="#">درباره ما</a>
-                <a href="{% url 'easy_level' %}">شروع یادگیری</a>
+                <a href="{% url 'training_levels' %}">شروع یادگیری</a>
                 <a href="#">خانه</a>
             </nav>
             <div class="logo-section">
@@ -434,16 +482,13 @@
         <div class="progress-section">
             <div class="progress-header">
                 <div class="passage-info">
-                    Passage <span id="current-passage">1</span> از {{ passage.question_set.count }}
-                    <span style="margin-right: 15px;">مدت زمان پیشنهادی: 18 دقیقه</span>
+                    سطح: {{ passage.get_difficulty_level_display }}
                 </div>
                 <div class="question-counter">
-                    سوالات پاسخ داده شده: <span id="answered-count">0</span> / {{ total_questions }}
+                    سوالات پاسخ داده شده:
+                    <span id="answered-count">0</span> / {{ total_questions }}
                 </div>
-                <div class="timer" id="timer">
-                    <span>⏱️</span>
-                    <span id="time-display">54:32</span>
-                </div>
+                <div></div>
             </div>
 
             <div class="progress-dots" id="progress-dots">
@@ -467,15 +512,6 @@
                     <!-- سوالات با JavaScript رندر می‌شوند -->
                 </div>
 
-                <div class="helper-buttons">
-                    <button class="helper-btn">📌 علامت‌گذاری</button>
-                    <button class="helper-btn">❌ حذف</button>
-                    <button class="helper-btn">سوال قبلی</button>
-                    <button class="helper-btn" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none;">
-                        ارسال آزمون
-                    </button>
-                </div>
-
                 <div class="navigation-buttons">
                     <button class="btn btn-previous" id="btn-previous">
                         → سوال قبلی
@@ -491,141 +527,173 @@
         </div>
     </div>
 
+    <!-- Modal -->
+    <div class="modal-overlay" id="finish-modal">
+        <div class="modal-box">
+            <h3>اتمام تمرین</h3>
+            <p>آیا مطمئن هستید که می‌خواهید تمرین را به پایان برسانید؟</p>
+
+            <div class="modal-actions">
+                <button class="btn btn-cancel" id="cancel-finish">
+                    ادامه تمرین
+                </button>
+                <button class="btn btn-confirm" id="confirm-finish">
+                    بله، اتمام تمرین
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // داده‌های اولیه از Django
-        const questions = {{ questions|safe }};
-        const userAnswers = {{ user_answers|safe }};
-        const sessionId = {{ session.id }};
-        const csrfToken = '{{ csrf_token }}';
+        document.addEventListener("DOMContentLoaded", function () {
+            // داده‌های اولیه از Django
+            const questions = {{ questions|safe }};
+            const userAnswers = {{ user_answers|safe }};
+            const sessionId = {{ session.id }};
+            const csrfToken = '{{ csrf_token }}';
 
-        let currentQuestionIndex = 0;
-        let selectedAnswers = { ...userAnswers };
+            let currentQuestionIndex = 0;
+            let selectedAnswers = { ...userAnswers };
 
-        // تولید Dots
-        function generateProgressDots() {
-            const dotsContainer = document.getElementById('progress-dots');
-            dotsContainer.innerHTML = '';
+            // دسترسی به المان‌های مودال
+            const finishModal = document.getElementById("finish-modal");
+            const cancelFinish = document.getElementById("cancel-finish");
+            const confirmFinish = document.getElementById("confirm-finish");
 
-            questions.forEach((q, index) => {
-                const dot = document.createElement('div');
-                dot.className = 'dot';
-                if (selectedAnswers[q.id]) dot.classList.add('answered');
-                if (index === currentQuestionIndex) dot.classList.add('current');
+            // تولید Dots
+            function generateProgressDots() {
+                const dotsContainer = document.getElementById('progress-dots');
+                dotsContainer.innerHTML = '';
 
-                dot.addEventListener('click', () => {
-                    currentQuestionIndex = index;
+                questions.forEach((q, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    if (selectedAnswers[q.id]) dot.classList.add('answered');
+                    if (index === currentQuestionIndex) dot.classList.add('current');
+
+                    dot.addEventListener('click', () => {
+                        currentQuestionIndex = index;
+                        renderQuestion();
+                    });
+
+                    dotsContainer.appendChild(dot);
+                });
+            }
+
+            // رندر سوال فعلی
+            function renderQuestion() {
+                const question = questions[currentQuestionIndex];
+                const container = document.getElementById('question-container');
+
+                container.innerHTML = `
+                    <div class="question-type-badge">
+                        سوال ${currentQuestionIndex + 1} از ${questions.length}
+                    </div>
+                    <div class="question-text">${question.question_text}</div>
+                    <div class="options-container">
+                        ${question.options.map((option, idx) => `
+                            <div class="option ${selectedAnswers[question.id] == option.id ? 'selected' : ''}"
+                                 data-option-id="${option.id}"
+                                 onclick="selectOption(${question.id}, ${option.id})">
+                                <div class="option-label">${String.fromCharCode(65 + idx)}</div>
+                                <div>${option.text}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+                updateNavigationButtons();
+                generateProgressDots();
+                updateAnsweredCount();
+            }
+
+            // انتخاب گزینه
+            window.selectOption = function(questionId, optionId) {
+                // اگر همان گزینه دوباره کلیک شد → لغو انتخاب
+                if (selectedAnswers[questionId] === optionId) {
+                    selectedAnswers[questionId] = null;
+
+                    fetch('/team14/submit-answer/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            question_id: questionId,
+                            option_id: null,
+                            session_id: sessionId
+                        })
+                    });
+
                     renderQuestion();
+                    return;
+                }
+
+                // انتخاب جدید
+                selectedAnswers[questionId] = optionId;
+
+                fetch('/team14/submit-answer/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        question_id: questionId,
+                        option_id: optionId,
+                        session_id: sessionId
+                    })
                 });
 
-                dotsContainer.appendChild(dot);
-            });
-        }
-
-        // رندر سوال فعلی
-        function renderQuestion() {
-            const question = questions[currentQuestionIndex];
-            const container = document.getElementById('question-container');
-
-            const questionTypeMap = {
-                'factual': 'Factual Information',
-                'vocabulary': 'Vocabulary in Context',
-                'inference': 'Inference',
-                'negative_factual': 'Negative Factual'
+                renderQuestion();
             };
 
-            container.innerHTML = `
-                <div class="question-type-badge">
-                    سوال ${currentQuestionIndex + 1} از ${questions.length}
-                </div>
-                <div class="question-text">${question.question_text}</div>
-                <div class="options-container">
-                    ${question.options.map((option, idx) => `
-                        <div class="option ${selectedAnswers[question.id] == option.id ? 'selected' : ''}"
-                             data-option-id="${option.id}"
-                             onclick="selectOption(${question.id}, ${option.id})">
-                            <div class="option-label">${String.fromCharCode(65 + idx)}</div>
-                            <div>${option.text}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+            // آپدیت دکمه‌های navigation
+            function updateNavigationButtons() {
+                document.getElementById('btn-previous').disabled = currentQuestionIndex === 0;
+                document.getElementById('btn-next').textContent =
+                    currentQuestionIndex === questions.length - 1 ? 'اتمام تمرین ←' : 'سوال بعدی ←';
+            }
 
-            updateNavigationButtons();
-            generateProgressDots();
-            updateAnsweredCount();
-        }
+            // آپدیت شمارنده پاسخ‌ها
+            function updateAnsweredCount() {
+                const count = Object.values(selectedAnswers)
+                    .filter(v => v !== null && v !== undefined)
+                    .length;
 
-        // انتخاب گزینه
-        function selectOption(questionId, optionId) {
-            selectedAnswers[questionId] = optionId;
+                document.getElementById('answered-count').textContent = count;
+            }
 
-            // ارسال AJAX برای ذخیره پاسخ
-            fetch('/team14/submit-answer/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    question_id: questionId,
-                    option_id: optionId,
-                    session_id: sessionId
-                })
+            // Navigation handlers
+            document.getElementById('btn-previous').addEventListener('click', () => {
+                if (currentQuestionIndex > 0) {
+                    currentQuestionIndex--;
+                    renderQuestion();
+                }
             });
 
-            renderQuestion();
-        }
-
-        // آپدیت دکمه‌های navigation
-        function updateNavigationButtons() {
-            document.getElementById('btn-previous').disabled = currentQuestionIndex === 0;
-            document.getElementById('btn-next').textContent =
-                currentQuestionIndex === questions.length - 1 ? 'اتمام تمرین ←' : 'سوال بعدی ←';
-        }
-
-        // آپدیت تعداد پاسخ‌های داده شده
-        function updateAnsweredCount() {
-            const count = Object.keys(selectedAnswers).length;
-            document.getElementById('answered-count').textContent = count;
-        }
-
-        // Navigation handlers
-        document.getElementById('btn-previous').addEventListener('click', () => {
-            if (currentQuestionIndex > 0) {
-                currentQuestionIndex--;
-                renderQuestion();
-            }
-        });
-
-        document.getElementById('btn-next').addEventListener('click', () => {
-            if (currentQuestionIndex < questions.length - 1) {
-                currentQuestionIndex++;
-                renderQuestion();
-            } else {
-                // اتمام تمرین
-                if (confirm('آیا می‌خواهید تمرین را به پایان برسانید؟')) {
-                    window.location.href = `/team14/finish-practice/${sessionId}/`;
+            document.getElementById('btn-next').addEventListener('click', () => {
+                if (currentQuestionIndex < questions.length - 1) {
+                    currentQuestionIndex++;
+                    renderQuestion();
+                } else {
+                    finishModal.classList.add("active");
                 }
-            }
+            });
+
+            // Modal handlers
+            cancelFinish.addEventListener("click", () => {
+                finishModal.classList.remove("active");
+            });
+
+            confirmFinish.addEventListener("click", () => {
+                window.location.href = `{% url 'finish_practice' 0 %}`.replace('/0/', `/${sessionId}/`);
+            });
+
+            // شروع اولیه
+            renderQuestion();
         });
-
-        // Timer
-        let timeLeft = 54 * 60 + 32; // 54:32
-        setInterval(() => {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            document.getElementById('time-display').textContent =
-                `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            timeLeft--;
-
-            if (timeLeft < 0) {
-                alert('زمان به پایان رسید!');
-                window.location.href = `/team14/finish-practice/${sessionId}/`;
-            }
-        }, 1000);
-
-        // شروع اولیه
-        renderQuestion();
     </script>
 </body>
 </html>
