@@ -42,6 +42,7 @@ class Evaluation(models.Model):
     evaluation_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user_id = models.UUIDField(help_text="Reference to Core User UUID")
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='evaluations')
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='evaluations', null=True, blank=True, help_text="Reference to Exam")
     task_type = models.CharField(max_length=20, choices=TaskType.choices, default=TaskType.WRITING)
     
     # Inputs
