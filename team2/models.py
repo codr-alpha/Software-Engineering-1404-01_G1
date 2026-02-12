@@ -1,5 +1,8 @@
 from django.db import models
 
+import core.models
+
+
 class Lesson(models.Model):
     LEVEL_CHOICES = [
         'beginner',
@@ -88,18 +91,28 @@ class VideoFiles(models.Model):
 class UserDetails(models.Model):
 
     ROLE_CHOICES = (
-        'teacher',
-        'student',
+        ('teacher', 'Teacher'),
+        ('student', 'Student'),
+    )
+
+    user = models.OneToOneField(
+        core.models.User,
+        on_delete=models.CASCADE,
+        related_name='user_details'
     )
     email = models.EmailField(unique=True)
     role = models.CharField(
         max_length=100,
-        choices=ROLE_CHOICES)
+        choices=ROLE_CHOICES,
+        default='student'
+    )
 
     lesson = models.ForeignKey(
         Lesson,
         on_delete=models.CASCADE,
-        related_name='videos',
+        related_name='user_details_list',
+        null=True,
+        blank=True
     )
 
     def __str__(self):
