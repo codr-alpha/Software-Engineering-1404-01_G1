@@ -8,22 +8,36 @@
     .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
     .header-card { background: white; border-radius: 20px; padding: 20px 30px; display: flex; align-items: center; gap: 15px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
     .icon-box { background: #ffe0d1; color: #ff8a65; padding: 10px; border-radius: 12px; font-size: 20px; }
+    
     .card-ui { background: white; border-radius: 24px; padding: 40px; text-align: center; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
     .btn-main { background: linear-gradient(90deg, #ff8a65, #ffb199); color: white; border: none; padding: 15px 45px; border-radius: 15px; font-size: 18px; font-weight: bold; cursor: pointer; font-family: 'Vazirmatn'; transition: 0.3s; margin: 20px 0; }
     .btn-main:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255, 138, 101, 0.3); }
-    .history-list { max-height: 350px; overflow-y: auto; margin: 20px 0; border: 1px solid #eee; border-radius: 15px; text-align: left; }
-    .history-item { display: flex; align-items: center; gap: 15px; padding: 15px; border-bottom: 1px solid #f9f9f9; transition: 0.2s; }
-    .history-item:hover { background: #fcfcfc; }
+    
+    .history-list { max-height: 300px; overflow-y: auto; margin: 20px 0; border: 1px solid #eee; border-radius: 15px; text-align: left; }
+    .history-item { display: flex; align-items: center; gap: 15px; padding: 12px 15px; border-bottom: 1px solid #f9f9f9; }
+    
+    /* Results View Styles */
     #results-view { display: none; }
-    .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; margin-top: 30px; }
-    .level-card { background: white; border-radius: 24px; padding: 30px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f1f1f1; animation: slideUp 0.5s ease; }
-    .level-badge { background: #2d3436; color: white; width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; margin: 0 auto 20px; }
-    .preview-tags { display: flex; gap: 8px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
-    .tag { background: #f1f2f6; padding: 5px 12px; border-radius: 10px; font-size: 13px; color: #555; }
-    .btn-study { width: 100%; background: #2d3436; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer; font-family: 'Vazirmatn'; transition: 0.2s; }
-    .btn-study:hover { background: #000; }
-    #loading-overlay { display: none; text-align: center; padding: 60px; }
-    .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #ff8a65; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; margin-top: 30px; }
+    .level-card { background: white; border-radius: 24px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #f1f1f1; animation: slideUp 0.5s ease; display: flex; flex-direction: column; }
+    
+    .level-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #f8f9fa; }
+    .level-badge { background: #2d3436; color: white; padding: 5px 12px; border-radius: 10px; font-weight: bold; font-size: 18px; }
+    .word-count { font-size: 13px; color: #ff8a65; font-weight: bold; }
+
+    /* The Scrollable Word List */
+    .word-list-container { max-height: 250px; overflow-y: auto; padding-right: 5px; }
+    .word-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f8fafc; border-radius: 12px; margin-bottom: 8px; transition: 0.2s; }
+    .word-row:hover { background: #f1f5f9; }
+    .word-name { font-weight: 600; color: #2d3436; font-size: 15px; }
+    
+    .btn-learn { background: #ff8a65; color: white; border: none; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-learn:hover { background: #e76f51; transform: scale(1.05); }
+
+    /* Loading styles */
+    #loading-overlay { display: none; text-align: center; padding: 80px; }
+    .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #ff8a65; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>
@@ -39,6 +53,7 @@
         </div>
     </div>
 
+    <!-- SELECTION VIEW -->
     <div id="selection-view">
         <div class="card-ui">
             <div style="font-size: 50px; margin-bottom: 15px;">⚡</div>
@@ -64,16 +79,18 @@
         </div>
     </div>
 
+    <!-- LOADING VIEW -->
     <div id="loading-overlay">
         <div class="spinner"></div>
         <h2 id="loading-text">AI is analyzing your content...</h2>
-        <p style="color: #636e72;">Categorizing new vocabulary by difficulty level.</p>
+        <p style="color: #636e72;">Extraction in progress using Llama 3.3...</p>
     </div>
 
+    <!-- RESULTS VIEW -->
     <div id="results-view">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
             <h2 style="margin: 0; color: #30336b;">Extracted Vocabulary</h2>
-            <button onclick="location.reload()" style="background:none; border:none; color:#6c5ce7; cursor:pointer; font-family:'Vazirmatn'; font-weight:bold;">
+            <button onclick="location.reload()" style="background:none; border:none; color:#6c5ce7; cursor:pointer; font-weight:bold;">
                 ← Reset Analysis
             </button>
         </div>
@@ -84,6 +101,7 @@
 
 {% block scripts %}
 <script>
+    // Load history on page load
     window.onload = async function() {
         try {
             const response = await fetch('/team8/api/reading-history/');
@@ -94,9 +112,9 @@
                 historyList.innerHTML = data.history.map(item => `
                     <div class="history-item">
                         <input type="checkbox" value="${item.id}" class="reading-checkbox">
-                        <div class="item-info">
-                            <span class="item-title">${item.title}</span>
-                            <span class="item-meta">${item.category} • ${item.date || 'Recent'}</span>
+                        <div style="margin-left: 10px;">
+                            <div style="font-weight: 600;">${item.title}</div>
+                            <div style="font-size: 12px; color: #888;">${item.category} • ${item.date}</div>
                         </div>
                     </div>
                 `).join('');
@@ -104,63 +122,64 @@
                 historyList.innerHTML = '<div style="padding:40px; text-align:center; color:#888;">No reading history found.</div>';
                 document.getElementById('manualBtn').disabled = true;
             }
-        } catch (error) {
-            console.error("History Load Error:", error);
-        }
+        } catch (error) { console.error(error); }
     };
 
     async function startAIAnalysis(mode) {
-        const selectionView = document.getElementById('selection-view');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const resultsView = document.getElementById('results-view');
-        const resultsGrid = document.getElementById('resultsGrid');
-
         let url = `/team8/api/text-analysis/?mode=${mode}`;
         if (mode === 'manual') {
             const selected = Array.from(document.querySelectorAll('.reading-checkbox:checked')).map(cb => cb.value);
-            if (selected.length === 0) {
-                alert("Please select at least one reading.");
-                return;
-            }
+            if (selected.length === 0) { alert("Please select at least one reading."); return; }
             selected.forEach(id => url += `&ids[]=${id}`);
         }
 
-        selectionView.style.display = 'none';
-        loadingOverlay.style.display = 'block';
+        document.getElementById('selection-view').style.display = 'none';
+        document.getElementById('loading-overlay').style.display = 'block';
 
         try {
             const response = await fetch(url);
             const data = await response.json();
+            const resultsGrid = document.getElementById('resultsGrid');
             resultsGrid.innerHTML = ''; 
             
             if (data.results && data.results.length > 0) {
                 data.results.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'level-card';
-                    card.innerHTML = `
-                        <div class="level-badge">${item.level}</div>
-                        <h3 style="margin-bottom: 5px;">${item.count} words found</h3>
-                        <p style="font-size:13px; color:#999; margin-top:0;">Suggested for your level</p>
-                        <div class="preview-tags">
-                            ${item.preview.map(word => `<span class="tag">${word}</span>`).join('')}
+                    
+                    // Create the HTML for the word list
+                    const wordHtml = item.words.map(word => `
+                        <div class="word-row">
+                            <span class="word-name">${word}</span>
+                            <button class="btn-learn" onclick="goToLearn('${word}')">Learn ➔</button>
                         </div>
-                        <button class="btn-study" onclick="goToStudy('${item.level}')">Study Level ${item.level}</button>
+                    `).join('');
+
+                    card.innerHTML = `
+                        <div class="level-header">
+                            <div class="level-badge">${item.level}</div>
+                            <div class="word-count">${item.count} words</div>
+                        </div>
+                        <div class="word-list-container">
+                            ${wordHtml}
+                        </div>
                     `;
                     resultsGrid.appendChild(card);
                 });
-                loadingOverlay.style.display = 'none';
-                resultsView.style.display = 'block';
+                document.getElementById('loading-overlay').style.display = 'none';
+                document.getElementById('results-view').style.display = 'block';
             } else {
-                document.getElementById('loading-text').innerText = "No significant vocabulary found.";
+                document.getElementById('loading-text').innerText = "No difficult vocabulary found.";
             }
         } catch (error) {
-            alert("AI Analysis failed.");
-            selectionView.style.display = 'block';
-            loadingOverlay.style.display = 'none';
+            alert("AI Analysis failed. Check logs.");
+            location.reload();
         }
     }
-    function goToStudy(level) {
-        window.location.href = `/team8/wordcard/?level=${level}`;
+
+    function goToLearn(word) {
+        // Redirects to Word Card page with the specific word as a query parameter
+        window.location.href = `/team8/wordcard/?word=${encodeURIComponent(word)}`;
     }
 </script>
 {% endblock %}

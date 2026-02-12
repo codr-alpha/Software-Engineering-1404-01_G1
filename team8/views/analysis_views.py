@@ -6,18 +6,16 @@ from ..models.ReadingMaterial import ReadingMaterial
 from dotenv import load_dotenv
 from django.contrib.auth.decorators import login_required
 
-
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
 
 @login_required 
 def text_analysis_page(request):
     return render(request, 'team8/text_analysis.html')
+
 @login_required
 def api_get_history(request):
-    print(f"DEBUG: Current User ID is {request.user.id}") # Look at docker logs to see this
-
+    # Filter by logged-in user
     readings = ReadingMaterial.objects.filter(user=request.user).order_by('-created_at')
     
     data = []
@@ -29,28 +27,39 @@ def api_get_history(request):
             "date": r.created_at.strftime("%Y/%m/%d")
         })
     return JsonResponse({"history": data})
+
 @login_required
 def api_perform_analysis(request):
     mode = request.GET.get('mode', 'quick')
-    user_id = 1 
     
+    # Selection logic
     if mode == 'quick':
         target_readings = ReadingMaterial.objects.filter(user=request.user).order_by('-created_at')[:5]
     else:
-        selected_ids = request.GET.getlist('ids[]') # لیست آیدی‌ها از فرانت
+        selected_ids = request.GET.getlist('ids[]') 
         target_readings = ReadingMaterial.objects.filter(user=request.user, id__in=selected_ids)
 
-    combined_text = " ".join([r.content for r in target_readings])
+    # Combine text for AI
+    combined_text = " ".join([r.content for r in target_readings if r.content])
 
+    # UPDATED PROMPT: Asks for the full list of words using the 'words' key
     prompt = f"""
-    Analyze this text: "{combined_text[:2000]}" 
-    Extract difficult or new vocabulary words and group them strictly by CEFR levels (A1, A2, B1, B2, C1, C2).
-    For each level, return the count of words and a preview list of 3 words.
+    Analyze this text: "{combined_text[:3000]}" 
+    Extract every difficult or academic vocabulary word and group them strictly by CEFR levels (A1, A2, B1, B2, C1, C2).
+    For each level, return the count of words and the COMPLETE list of all extracted words.
     Return ONLY a JSON object like this:
     {{
     "results": [
-        {{"level": "B2", "count": 15, "preview": ["word1", "word2", "word3"]}},
-        {{"level": "C1", "count": 5, "preview": ["word4", "word5", "word6"]}}
+        {{
+            "level": "C1", 
+            "count": 5, 
+            "words": ["phenomenon", "scrutinize", "anomaly", "elusive", "curvature"]
+        }},
+        {{
+            "level": "B2", 
+            "count": 3, 
+            "words": ["beckon", "nebulous", "expanse"]
+        }}
     ]
     }}
     """

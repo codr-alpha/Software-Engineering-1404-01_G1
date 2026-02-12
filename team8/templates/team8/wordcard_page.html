@@ -74,19 +74,17 @@
 {% block scripts %}
 <script>
     function goToMnemonic() {
-    const wordElement = document.getElementById('word-text');
-    if (!wordElement) return;
-    
-    let word = wordElement.textContent.trim();
-    // Don't redirect if the word is still loading or placeholder
-    if (word === 'Loading...' || word === '') {
-        alert('Please generate a word first.');
-        return;
+        const wordElement = document.getElementById('word-text');
+        if (!wordElement) return;
+        
+        let word = wordElement.textContent.trim();
+        if (word === 'Loading...' || word === '') {
+            alert('Please generate a word first.');
+            return;
+        }
+        window.location.href = `/team8/mnemonics/?word=${encodeURIComponent(word)}`;
     }
-    
-    // Redirect to mnemonic page with the word as query parameter
-    window.location.href = `/team8/mnemonics/?word=${encodeURIComponent(word)}`;
-    }
+
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -102,69 +100,58 @@
         return cookieValue;
     }
 
-function renderWord(data) {
-    // Basic info
-    document.getElementById('word-text').textContent = data.word;
-    document.getElementById('word-level').textContent = data.level || 'B2';
-    document.getElementById('word-phonetic').textContent = data.ipa || '';
-    document.getElementById('word-definition').textContent = data.definition || '';
+    function renderWord(data) {
+        document.getElementById('word-text').textContent = data.word;
+        document.getElementById('word-level').textContent = data.level || 'B2';
+        document.getElementById('word-phonetic').textContent = data.ipa || '';
+        document.getElementById('word-definition').textContent = data.definition || '';
 
-    // --- Synonyms ---
-    const synContainer = document.getElementById('word-synonyms');
-    const synonyms = Array.isArray(data.synonyms) ? data.synonyms : [];
-    synContainer.innerHTML = synonyms.map(s => `<span class="tag tag-syn">${s}</span>`).join('');
+        const synContainer = document.getElementById('word-synonyms');
+        const synonyms = Array.isArray(data.synonyms) ? data.synonyms : [];
+        synContainer.innerHTML = synonyms.map(s => `<span class="tag tag-syn">${s}</span>`).join('');
 
-    // --- Antonyms ---
-    const antContainer = document.getElementById('word-antonyms');
-    const antonyms = Array.isArray(data.antonyms) ? data.antonyms : [];
-    antContainer.innerHTML = antonyms.map(a => `<span class="tag tag-ant">${a}</span>`).join('');
+        const antContainer = document.getElementById('word-antonyms');
+        const antonyms = Array.isArray(data.antonyms) ? data.antonyms : [];
+        antContainer.innerHTML = antonyms.map(a => `<span class="tag tag-ant">${a}</span>`).join('');
 
-    // --- Collocations ---
-    const colContainer = document.getElementById('word-collocations');
-    const collocations = Array.isArray(data.collocations) ? data.collocations : [];
-    colContainer.innerHTML = collocations.map(c => `<span class="tag tag-coll">${c}</span>`).join('');
+        const colContainer = document.getElementById('word-collocations');
+        const collocations = Array.isArray(data.collocations) ? data.collocations : [];
+        colContainer.innerHTML = collocations.map(c => `<span class="tag tag-coll">${c}</span>`).join('');
 
-    // --- Examples ---
-    const exContainer = document.getElementById('word-examples');
-    const examples = Array.isArray(data.examples) ? data.examples : [];
-    exContainer.innerHTML = examples.map(ex => `<div class="example-item">${ex}</div>`).join('');
+        const exContainer = document.getElementById('word-examples');
+        const examples = Array.isArray(data.examples) ? data.examples : [];
+        exContainer.innerHTML = examples.map(ex => `<div class="example-item">${ex}</div>`).join('');
 
-    // --- Pronunciation audio (your existing code) ---
-    const word = data.word;
-    const audioElement = document.getElementById('wordAudio');
-    const playBtn = document.getElementById('playAudioBtn');
-    playBtn.disabled = true;
-    playBtn.textContent = "⏳";
-    
-    fetch(`/team8/api/tts/?text=${encodeURIComponent(word)}&lang=en`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.audio_url) {
-                audioElement.src = data.audio_url;
+        const word = data.word;
+        const audioElement = document.getElementById('wordAudio');
+        const playBtn = document.getElementById('playAudioBtn');
+        playBtn.disabled = true;
+        playBtn.textContent = "⏳";
+        
+        fetch(`/team8/api/tts/?text=${encodeURIComponent(word)}&lang=en`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.audio_url) {
+                    audioElement.src = data.audio_url;
+                    playBtn.disabled = false;
+                    playBtn.textContent = "🔊";
+                }
+            })
+            .catch(error => {
                 playBtn.disabled = false;
-                playBtn.textContent = "🔊";
-            }
-        })
-        .catch(error => {
-            console.error("TTS failed:", error);
-            playBtn.disabled = false;
-            playBtn.textContent = "🔇";
-        });
+                playBtn.textContent = "🔇";
+            });
 
-    // --- Enable Mnemonic button ---
-    document.getElementById('mnemonicBtn').disabled = false;
-}
-
-function playPronunciation() {
-    const audio = document.getElementById('wordAudio');
-    if (audio.src) {
-        audio.play();
-    } else {
-        alert("Audio not ready yet.");
+        document.getElementById('mnemonicBtn').disabled = false;
     }
-}
 
-    async function generateNewWord() {
+    function playPronunciation() {
+        const audio = document.getElementById('wordAudio');
+        if (audio.src) audio.play();
+    }
+
+    // --- FIX: This function now optionally accepts a specific word ---
+    async function generateNewWord(targetWord = null) {
         const btn = document.getElementById('nextBtn');
         btn.disabled = true;
         btn.textContent = "AI is thinking...";
@@ -176,12 +163,17 @@ function playPronunciation() {
                     'X-CSRFToken': getCookie('csrftoken'),
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: '' 
+                // Pass the word in the body if it's provided
+                body: targetWord ? `word=${encodeURIComponent(targetWord)}` : ''
             });
 
             const result = await response.json();
             if (result.status === "success") {
                 renderWord(result.data);
+                // --- Cleanup URL after loading a specific word ---
+                if (targetWord) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
             } else {
                 alert("Error from AI: " + (result.error || "Unknown error"));
             }
@@ -192,6 +184,17 @@ function playPronunciation() {
             btn.textContent = "Generate ✨";
         }
     }
-    window.onload = generateNewWord;
+
+    // --- FIX: Check for 'word' parameter in the URL on load ---
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const wordParam = urlParams.get('word');
+
+        if (wordParam) {
+            generateNewWord(wordParam);
+        } else {
+            generateNewWord();
+        }
+    };
 </script>
 {% endblock %}
