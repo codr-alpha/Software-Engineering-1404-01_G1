@@ -1,7 +1,8 @@
-from .Word import Word
-from .Word import DifficultyLevel
-from .menemonic import WordStory
-from .ReadingMaterial import ReadingMaterial
+
+from .LearningWord import *
+from .menemonic import *
+from .ReadingMaterial import *
+from .word import *
 
 __all__ = [
     "Word",

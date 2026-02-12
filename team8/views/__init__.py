@@ -1,2 +1,3 @@
-from .general import base, ping
-from .wordcard import WordCardView
+from .general import *
+from .wordcard import *
+from .analysis_views import *
