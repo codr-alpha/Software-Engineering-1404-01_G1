@@ -365,13 +365,14 @@ def practice_result(request, session_id):
 @login_required
 def start_exam(request):
     passages = Passage.objects.prefetch_related('questions__options').all()
+    IS_EXAM = True
     if not passages.exists():
         return redirect('index')
 
     passage = random.choice(list(passages))
 
     passage_count = 3
-    exam_duration = 54 * 60 if passage_count == 3 else 72 * 60
+    exam_duration = 30 * 60
 
     # ✅ ساخت session آزمون
     session = UserSession.objects.create(
