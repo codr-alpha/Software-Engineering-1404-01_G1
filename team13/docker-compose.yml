@@ -6,11 +6,28 @@ services:
       - "${TEAM_PORT}:8000"
     volumes:
       - ./media:/app/media/team13
-      # Persist ollama models
-      - ollama_models:/root/.ollama/models
       - ./static:/app/static/team13
+      - ../manage.py:/app/manage.py
+      - ../app404:/app/app404
+      - ../core:/app/core
+      - ../team13:/app/team13
     env_file:
       - .env
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - WHISPER_HOST=http://whisper:9000
+    networks:
+      - app404
+    depends_on:
+      - ollama
+      - whisper
+    restart: unless-stopped
+
+  # Separate Ollama service
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_models:/root/.ollama
     networks:
       - app404
     restart: unless-stopped
@@ -18,8 +35,38 @@ services:
       resources:
         limits:
           memory: 6G
-        reservations:
-          memory: 4G
+    command: serve
+
+  # Separate Whisper service
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - whisper_cache:/root/.cache/whisper  # Cache models
+      - ./media:/media  # Shared volume for audio files
+    environment:
+      - ASR_MODEL=base
+      - ASR_ENGINE=openai_whisper
+    networks:
+      - app404
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # Pre-load models
+  model-setup:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - app404
+    depends_on:
+      - ollama
+    command: sh -c "sleep 5 && ollama pull gemma3:4b"
+    restart: no
 
 networks:
   app404:
@@ -29,3 +76,5 @@ networks:
 volumes:
   ollama_models:
     name: team13_ollama_models
+  whisper_cache:
+    name: team13_whisper_cache

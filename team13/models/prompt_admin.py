@@ -5,6 +5,6 @@ from team13.models import Prompt
 
 @admin.register(Prompt)
 class PromptAdmin(admin.ModelAdmin):
-    list_display = ['name', 'is_active', 'prompt_text', 'created_at', 'modified_at']
+    list_display = ['name', 'is_active', 'prompt_text', 'created', 'modified']
     search_fields = ['name']
-    readonly_fields = ['created_at', 'modified_at']
+    readonly_fields = ['created', 'modified']

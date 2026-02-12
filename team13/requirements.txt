@@ -3,10 +3,10 @@ PyJWT
 django-environ
 django-cors-headers
 django-simple-history
+django-filter
 mysqlclient
 PyMySQL
+djangorestframework
 gunicorn
 whitenoise
-openai-whisper
-djangorestframework
-ollama==0.1.9
+requests

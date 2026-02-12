@@ -1,42 +1,34 @@
-"""This is a singleton internal service which transcripts audio to text.
-We use singleton architecture so that we load the model once and use it multiple times.
-We use openai-whisper package for this.
-
-⚠️ IMPORTANT:
-This image build should be with VPN because we are banned.
-The model will be cached in the Docker image during build and no network is needed at runtime.
-"""
+"""Whisper client that talks to whisper container to transcribe audio to text."""
+import requests
 from django.conf import settings
-import threading
-import whisper
 
 
-class WhisperTranscriber:
+class WhisperClient:
     _instance = None
-    _lock = threading.Lock()
 
-    def __new__(cls) -> 'WhisperTranscriber':
-        """Create singleton instance if it doesn't exist"""
+    def __new__(cls):
         if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-                    cls._instance._initialize()
+            cls._instance = super().__new__(cls)
+            cls._instance.base_url = getattr(settings, 'WHISPER_HOST', 'http://whisper:9000')
         return cls._instance
 
-    def _initialize(self) -> None:
-        print("Initializing Whisper transcription service...")
-        self.model = whisper.load_model(getattr(settings, "WHISPER_MODEL_SIZE", "base"))
-        self.is_ready = True
-        print("Whisper service ready!")
-
-    def transcribe(self, audio: bytes) -> dict:
-        """Main transcription method for other services to use"""
-        result = self.model.transcribe(audio)
+    def transcribe(self, audio_file) -> dict:
+        """Send audio file to whisper container"""
+        files = {'audio_file': (audio_file.name, audio_file.read(), audio_file.content_type)}
+        response = requests.post(
+            f"{self.base_url}/asr",
+            params={
+                "task": "transcribe",
+                "language": "en",
+                "output": "json"
+            },
+            files=files
+        )
+        response.raise_for_status()
+        result = response.json()
         return {
-            'text': result['text'],
+            'text': result.get('text', ''),
             'language': result.get('language', 'en'),
         }
 
-
-whisper_transcriber = WhisperTranscriber()
+whisper_client = WhisperClient()
