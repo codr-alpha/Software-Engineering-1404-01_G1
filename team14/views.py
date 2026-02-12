@@ -420,7 +420,7 @@ def practice_result(request, session_id):
     })
 
 
-@login_required
+@login_required(login_url='/auth/')
 def start_exam(request):
     passages = Passage.objects.prefetch_related('questions__options').all()
     IS_EXAM = True
