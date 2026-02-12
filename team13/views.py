@@ -25,6 +25,18 @@ def ping(request):
 def base(request):
     return render(request, f"{TEAM_NAME}/index.html")
 
+def writing(request):
+    return render(request, f"{TEAM_NAME}/writing.html")
+
+def speaking(request):
+    return render(request, f"{TEAM_NAME}/speaking.html")
+
+def writing_exam(request):
+    return render(request, f"{TEAM_NAME}/writing_exam.html")
+
+def speaking_exam(request):
+    return render(request, f"{TEAM_NAME}/speaking_exam.html")
+
 
 @require_GET
 @api_login_required
