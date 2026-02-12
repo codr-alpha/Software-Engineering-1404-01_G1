@@ -189,3 +189,17 @@ def teacher_lesson_videos_view(request, lesson_id):
     return render(request, 'team2_teacher_lesson_videos.html', context)
 
 
+
+@api_login_required
+@admin_required
+@require_http_methods(["GET"])
+def admin_users_view(request):
+    users = UserDetails.objects.using('team2').all().order_by('-email')
+    
+    context = {
+        'users': users,
+        'total_users': users.count(),
+        'teachers_count': users.filter(role='teacher').count(),
+        'students_count': users.filter(role='student').count(),
+    }
+    return render(request, 'team2_admin_users.html', context)
