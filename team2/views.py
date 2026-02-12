@@ -14,15 +14,22 @@ def ping(request):
 def base(request):
     return render(request, f"{TEAM_NAME}/index.html")
 
-
+@api_login_required
 @require_http_methods(["GET"])
 def lessons_list_view(request):
-
-    lessons = Lesson.objects.filter(
-        # TODO : add filter user
-        is_deleted=False,
-        status='published'
-    ).prefetch_related('videos')
+    from team2.models import UserDetails
+    
+    # بدست آوردن UserDetails کاربر فعلی
+    try:
+        user_details = UserDetails.objects.using('team2').get(user_id=request.user.id)
+        # درس‌های مربوط به کاربر
+        lessons = user_details.lessons.filter(
+            is_deleted=False,
+            status='published'
+        ).prefetch_related('videos')
+    except UserDetails.DoesNotExist:
+        # اگر UserDetails موجود نیست، درس‌های خالی
+        lessons = Lesson.objects.none()
 
     context = {
         'lessons': lessons,
@@ -31,7 +38,7 @@ def lessons_list_view(request):
     # TODO : create team2_Lessons_list.html
     return render(request, 'team2_Lessons_list.html', context)
 
-
+@api_login_required
 @require_http_methods(["GET"])
 def lesson_details_view(request, lesson_id):
 
