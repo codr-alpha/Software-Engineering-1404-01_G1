@@ -228,3 +228,54 @@ def admin_change_role_view(request, user_id):
         'roles': [('teacher', 'معلم'), ('student', 'دانش‌جو')],
     }
     return render(request, 'team2_admin_change_role.html', context)
+
+
+@api_login_required
+@teacher_required
+@require_http_methods(["GET", "POST"])
+def teacher_create_lesson_view(request):
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        subject = request.POST.get('subject', '').strip()
+        level = request.POST.get('level', 'beginner')
+        skill = request.POST.get('skill', '').strip()
+        duration = request.POST.get('duration', 0)
+        
+        if not all([title, description, subject, skill]):
+            messages.error(request, 'تمام فیلدها الزامی هستند.')
+            return redirect('teacher_create_lesson')
+        
+        if level not in ['beginner', 'intermediate', 'advanced']:
+            messages.error(request, 'سطح معتبر نیست.')
+            return redirect('teacher_create_lesson')
+        
+        try:
+            duration_seconds = int(duration) if duration else 0
+            
+            lesson = Lesson.objects.using('team2').create(
+                title=title,
+                description=description,
+                subject=subject,
+                level=level,
+                skill=skill,
+                duration_seconds=duration_seconds,
+                status='draft',
+            )
+            
+            try:
+                user_details = UserDetails.objects.using('team2').get(user_id=request.user.id)
+                user_details.lessons.add(lesson)
+            except UserDetails.DoesNotExist:
+                pass
+            
+            messages.success(request, f'درس "{title}" با موفقیت ساخته شد.')
+            return redirect('team2_teacher_lessons')
+        except Exception as e:
+            messages.error(request, f'خطا در ساخت درس: {str(e)}')
+    
+    context = {
+        'levels': [('beginner', 'مبتدی'), ('intermediate', 'متوسط'), ('advanced', 'پیشرفته')],
+    }
+    return render(request, 'team2_teacher_create_lesson.html', context)
