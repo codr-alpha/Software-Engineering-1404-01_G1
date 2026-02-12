@@ -164,3 +164,28 @@ def add_video_view(request, lesson_id):
         'lesson': lesson,
     }
     return render(request, 'team2_add_video.html', context)
+
+
+
+@api_login_required
+@teacher_required
+@require_http_methods(["GET"])
+def teacher_lesson_videos_view(request, lesson_id):
+
+    try:
+        user_details = UserDetails.objects.using('team2').get(user_id=request.user.id)
+        lesson = get_object_or_404(user_details.lessons.all(), id=lesson_id)
+    except UserDetails.DoesNotExist:
+        messages.error(request, 'پروفایل معلم یافت نشد.')
+        return redirect('team2_teacher_lessons')
+
+    videos = lesson.videos.all().order_by('-created_at')
+
+    context = {
+        'lesson': lesson,
+        'videos': videos,
+        'total_videos': videos.count(),
+    }
+    return render(request, 'team2_teacher_lesson_videos.html', context)
+
+
