@@ -232,6 +232,65 @@ if (document.readyState === 'loading') {
 }
 
 // ==================== Data Loading ====================
+/**
+ * Merge attempts by exam_id and timestamp to group multi-question exams
+ * This ensures multi-question exams are counted as one attempt
+ */
+function mergeEvaluationsByExam(evaluations) {
+    if (!evaluations || evaluations.length === 0) return [];
+    
+    // Sort by created_at first
+    const sorted = [...evaluations].sort((a, b) => 
+        new Date(a.created_at) - new Date(b.created_at)
+    );
+    
+    const examGroups = {};
+    
+    sorted.forEach(evaluation => {
+        const examId = evaluation.exam_id;
+        const createdTime = new Date(evaluation.created_at);
+        
+        // Create a key combining exam_id and a time window (same minute)
+        // This groups all questions from the same exam taken within the same minute
+        const timeKey = Math.floor(createdTime.getTime() / 60000); // Round to minute
+        const groupKey = `${examId}_${timeKey}`;
+        
+        if (!examGroups[groupKey]) {
+            examGroups[groupKey] = {
+                ...evaluation,
+                scores: [evaluation.overall_score || 0],
+                evaluationIds: [evaluation.evaluation_id],
+                dates: [evaluation.created_at]
+            };
+        } else {
+            // Add to existing group
+            examGroups[groupKey].scores.push(evaluation.overall_score || 0);
+            examGroups[groupKey].evaluationIds.push(evaluation.evaluation_id);
+            examGroups[groupKey].dates.push(evaluation.created_at);
+        }
+    });
+    
+    // Convert groups back to array and calculate averages
+    return Object.values(examGroups).map(group => {
+        // Calculate average score
+        const averageScore = group.scores.length > 0 
+            ? (group.scores.reduce((a, b) => a + b, 0) / group.scores.length)
+            : 0;
+        
+        // Use the most recent date
+        const mostRecentDate = group.dates.sort((a, b) => 
+            new Date(b) - new Date(a)
+        )[0];
+        
+        return {
+            ...group,
+            overall_score: parseFloat(averageScore.toFixed(1)),
+            question_count: group.scores.length,
+            created_at: mostRecentDate
+        };
+    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
 async function loadUserHistory() {
     try {
         // Force a fresh auth check to ensure we have latest user data
@@ -253,12 +312,89 @@ async function loadUserHistory() {
 
         if (response.ok) {
             const data = await response.json();
-            userHistory = data.evaluations || [];
+            const rawHistory = data.attempts || data.evaluations || [];
+            
+            // Merge multi-question exams into single entries
+            userHistory = mergeEvaluationsByExam(rawHistory);
+            
+            console.log('Loaded user history:', rawHistory.length, 'evaluations merged into', userHistory.length, 'exams');
+            
+            // Update UI with loaded data
+            updateDashboardStats();
         }
     } catch (error) {
         console.error('Failed to load user history:', error);
     }
 }
+
+/**
+ * Update dashboard statistics based on loaded history
+ */
+function updateDashboardStats() {
+    if (!userHistory || userHistory.length === 0) {
+        console.log('No history data to display');
+        return;
+    }
+    
+    // Count unique exams by type (already merged in loadUserHistory)
+    const writingExams = userHistory.filter(e => e.task_type === 'writing').length;
+    const speakingExams = userHistory.filter(e => e.task_type === 'speaking').length;
+    
+    console.log(`Updating dashboard: ${writingExams} writing, ${speakingExams} speaking unique exams`);
+    console.log(`Total unique exams: ${userHistory.length}`);
+    
+    // Update count cards using correct IDs
+    const writingCountEl = document.getElementById('writing-count');
+    const speakingCountEl = document.getElementById('speaking-count');
+    
+    if (writingCountEl) {
+        writingCountEl.textContent = writingExams;
+        console.log('Updated writing count to:', writingExams);
+    } else {
+        console.warn('writing-count element not found');
+    }
+    
+    if (speakingCountEl) {
+        speakingCountEl.textContent = speakingExams;
+        console.log('Updated speaking count to:', speakingExams);
+    } else {
+        console.warn('speaking-count element not found');
+    }
+    
+    // Calculate scores (each entry is already an exam average)
+    const scores = userHistory
+        .map(e => e.overall_score)
+        .filter(s => s !== null && s !== undefined);
+    
+    if (scores.length > 0) {
+        // Update average score
+        const avgScore = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
+        const avgScoreEl = document.getElementById('avg-score');
+        if (avgScoreEl) {
+            avgScoreEl.textContent = avgScore;
+        }
+        
+        // Update best score
+        const bestScore = Math.max(...scores).toFixed(1);
+        const bestScoreEl = document.getElementById('best-score');
+        if (bestScoreEl) {
+            bestScoreEl.textContent = bestScore;
+        }
+    }
+    
+    // Update last attempt date
+    if (userHistory.length > 0) {
+        const lastExam = userHistory[0]; // Already sorted by created_at descending
+        const lastAttemptEl = document.getElementById('last-attempt');
+        if (lastAttemptEl) {
+            const date = new Date(lastExam.created_at);
+            lastAttemptEl.textContent = date.toLocaleDateString('fa-IR');
+        }
+    }
+    
+    console.log(`Dashboard stats updated successfully`);
+}
+
 
 // ==================== Notification System ====================
 /**

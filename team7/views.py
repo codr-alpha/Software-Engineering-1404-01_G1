@@ -153,7 +153,7 @@ def submit_speaking(request):
     Expects multipart/form-data:
         - user_id: UUID string
         - question_id: UUID string
-        - audio_file: Audio file (.wav, .mp3, .flac)
+        - audio_file: Audio file (webm, mp4, mp3, wav, flac, m4a, etc.)
     
     Returns JSON with evaluation result, transcript, and detailed scores.
     """
@@ -182,8 +182,8 @@ def submit_speaking(request):
 
         audio_file = request.FILES['audio_file']
         
-        # Log file info
-        logger.info(f"Received speaking submission: user={user_id}, question={question_id}, file={audio_file.name}, size={audio_file.size} bytes")
+        # Log file info including content type
+        logger.info(f"Received speaking submission: user={user_id}, question={question_id}, file={audio_file.name}, size={audio_file.size} bytes, content_type={audio_file.content_type}")
 
         # Call service orchestrator
         service = EvaluationService()
@@ -201,6 +201,89 @@ def submit_speaking(request):
         return JsonResponse({
             "error": "INTERNAL_ERROR",
             "message": "An unexpected error occurred"
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def submit_speaking_mock(request):
+    """Mock speaking submission endpoint that saves results without ASR/LLM processing.
+    
+    Expects JSON:
+        - user_id: UUID string
+        - question_id: UUID string  
+        - score: float (mock score)
+        - criteria: list of {name, score} dicts
+        - feedback: string
+    """
+    try:
+        from .models import Evaluation, DetailedScore, Question
+        import uuid
+        
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+        question_id = data.get('question_id')
+        score = data.get('score', 2.5)
+        criteria = data.get('criteria', [])
+        feedback = data.get('feedback', 'Mock feedback')
+        
+        logger.info(f"submit_speaking_mock: user_id={user_id}, question_id={question_id}, score={score}")
+        
+        # Validate inputs
+        if not all([user_id, question_id]):
+            return JsonResponse({
+                "error": "INVALID_INPUT",
+                "message": "Missing user_id or question_id"
+            }, status=400)
+        
+        # Fetch question
+        try:
+            question = Question.objects.using('team7').get(question_id=question_id)
+        except Question.DoesNotExist:
+            logger.warning(f"Question not found: {question_id}")
+            return JsonResponse({
+                "error": "QUESTION_NOT_FOUND",
+                "message": "Invalid question ID"
+            }, status=404)
+        
+        # Create mock evaluation record
+        eval_obj = Evaluation.objects.using('team7').create(
+            user_id=user_id,
+            question=question,
+            exam=question.exam,
+            task_type="speaking",
+            audio_path=f"mock/speaking/{user_id}/{uuid.uuid4()}.webm",
+            transcript_text="Mock transcript (demo mode)",
+            overall_score=score,
+            ai_feedback=feedback,
+            rubric_version_id="mock_v1"
+        )
+        
+        # Save criterion scores
+        for crit in criteria:
+            DetailedScore.objects.using('team7').create(
+                evaluation=eval_obj,
+                criterion=crit.get('name'),
+                score_value=crit.get('score'),
+                comment=crit.get('comment', '')
+            )
+        
+        logger.info(f"Mock speaking evaluation created: {eval_obj.evaluation_id}")
+        
+        return JsonResponse({
+            "status": "success",
+            "evaluation_id": str(eval_obj.evaluation_id),
+            "overall_score": float(score),
+            "feedback": feedback,
+            "transcript": "Mock transcript",
+            "criteria": criteria
+        }, status=200)
+        
+    except Exception as e:
+        logger.exception(f"Error in submit_speaking_mock: {str(e)}")
+        return JsonResponse({
+            "error": "INTERNAL_ERROR",
+            "message": str(e)
         }, status=500)
 
 
@@ -291,7 +374,7 @@ def admin_health(request):
         from openai import OpenAI
         
         client = OpenAI(
-            api_key=getattr(settings, 'AI_GENERATOR_API_KEY', None),
+            api_key="g4a-1rcT4Qz2aq7XJT_qGXaoPavi8YyDzpuYfzHPzmEa8so",
             base_url="https://api.gpt4-all.xyz/v1"
         )
         

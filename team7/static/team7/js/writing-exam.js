@@ -292,7 +292,7 @@ function updateProgress() {
     const words = text.split(/\s+/).filter(word => word.length > 0).length;
     
     // Calculate progress based on maximum word count (150 words)
-    const targetWords = 150;
+    const targetWords = 500;
     const percentage = Math.min(100, Math.round((words / targetWords) * 100));
 
     progressElement.textContent = percentage + '%';

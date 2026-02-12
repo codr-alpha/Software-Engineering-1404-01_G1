@@ -637,6 +637,44 @@ function nextQuestion() {
 }
 
 // ==================== SUBMIT EXAM ====================
+/**
+ * Generate a random score from normal distribution
+ * @param {number} mean - Mean of the distribution
+ * @param {number} stdDev - Standard deviation
+ * @param {number} min - Minimum value
+ * @param {number} max - Maximum value
+ * @returns {number} Random score
+ */
+function generateNormalScore(mean = 2.5, stdDev = 0.8, min = 0, max = 5) {
+    // Box-Muller transform for normal distribution
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+    
+    let score = z0 * stdDev + mean;
+    // Clamp to min/max range
+    score = Math.max(min, Math.min(max, score));
+    
+    return parseFloat(score.toFixed(1));
+}
+
+/**
+ * Generate mock feedback based on score
+ * @param {number} score - The score (0-5)
+ * @returns {string} Feedback message
+ */
+function generateMockFeedback(score) {
+    if (score >= 4.0) {
+        return 'عالی! شما در این سوال عملکرد بسیار خوبی داشتید.';
+    } else if (score >= 3.0) {
+        return 'خوب است. با تمرین بیشتر می‌توانید بهتر شوید.';
+    } else if (score >= 2.0) {
+        return 'قابل قبول. سعی کنید روی تلفظ و روان بودن صحبت خود کار کنید.';
+    } else {
+        return 'نیاز به تمرین بیشتر دارید. از منابع آموزشی استفاده کنید.';
+    }
+}
+
 async function submitExam() {
     // Validate that user has selected a recording for each question
     const validation = validateAllRecordingsSelected();
@@ -656,9 +694,6 @@ async function submitExam() {
         showLoadingPopup();
 
         try {
-            const scores = [];
-            const evaluations = [];
-
             // Get user ID from authManager
             const currentUser = window.authManager?.getCurrentUser();
             if (!currentUser || !currentUser.id) {
@@ -666,7 +701,13 @@ async function submitExam() {
             }
             const userId = currentUser.id;
 
-            // Evaluate each selected recording via API
+            // Wait 2 seconds to simulate processing
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const scores = [];
+            const evaluations = [];
+
+            // Generate mock scores and submit to API for each question
             for (let i = 0; i < speakingExamState.totalQuestions; i++) {
                 const question = speakingExamState.currentExam.questions[i];
                 const recordingIndex = speakingExamState.selectedRecordings[question.id];
@@ -675,69 +716,55 @@ async function submitExam() {
                     continue; // Should not happen if validation passed
                 }
 
-                const recording = speakingExamState.recordings[question.id][recordingIndex];
-                if (!recording || !recording.blob) {
-                    throw new Error(`No recording found for question ${i + 1}`);
-                }
+                // Generate random score from normal distribution (mean=2.5, out of 5)
+                const score = generateNormalScore(2.5, 0.8, 0, 5);
+                scores.push(score);
+                
+                // Generate mock criteria scores
+                const criteria = [
+                    { name: 'تلفظ', score: generateNormalScore(2.5, 0.8, 0, 5), comment: '' },
+                    { name: 'روانی', score: generateNormalScore(2.5, 0.8, 0, 5), comment: '' },
+                    { name: 'دستور زبان', score: generateNormalScore(2.5, 0.8, 0, 5), comment: '' },
+                    { name: 'واژگان', score: generateNormalScore(2.5, 0.8, 0, 5), comment: '' }
+                ];
+                
+                const feedback = generateMockFeedback(score);
+                
+                evaluations.push({
+                    questionIndex: i + 1,
+                    score: score,
+                    feedback: feedback,
+                    transcript: 'رونویسی متن در این نسخه نمایشی در دسترس نیست.',
+                    criteria: criteria
+                });
+                
+                console.log(`Question ${i + 1} mock score: ${score}`);
 
+                // Submit to mock API to save in database
                 try {
-                    // Convert audio blob to WAV format for compatibility
-                    let audioBlob = recording.blob;
-                    if (!audioBlob.type.includes('wav')) {
-                        console.log(`Converting ${audioBlob.type} to WAV format...`);
-                        audioBlob = await convertToWAV(audioBlob);
-                    }
-                    
-                    // Prepare FormData for multipart file upload
-                    const formData = new FormData();
-                    formData.append('user_id', userId);
-                    formData.append('question_id', question.id);
-                    formData.append('audio_file', audioBlob, `recording-q${i + 1}.wav`);
-
-                    console.log(`Submitting question ${i + 1}: user_id=${userId}, question_id=${question.id}, blob_size=${recording.blob.size}, type=${recording.blob.type}`);
-
-                    const response = await fetch('/team7/api/submit-speaking/', {
+                    const response = await fetch('/team7/api/submit-speaking-mock/', {
                         method: 'POST',
-                        body: formData
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            user_id: userId,
+                            question_id: question.id,
+                            score: score,
+                            criteria: criteria,
+                            feedback: feedback
+                        })
                     });
 
                     if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error(`API error response: ${errorText}`);
-                        throw new Error(`API error: ${response.status} - ${errorText}`);
-                    }
-
-                    const result = await response.json();
-
-                    if (result.status === 'success') {
-                        scores.push(result.overall_score);
-                        evaluations.push({
-                            questionIndex: i + 1,
-                            score: result.overall_score,
-                            feedback: result.feedback,
-                            transcript: result.transcript,
-                            criteria: result.criteria
-                        });
-                        console.log(`Question ${i + 1} evaluated: ${result.overall_score}`);
+                        console.warn(`Mock submission failed for question ${i + 1}: ${response.status}`);
                     } else {
-                        throw new Error(result.error || 'Evaluation failed');
+                        const result = await response.json();
+                        console.log(`Saved evaluation ${result.evaluation_id} for question ${i + 1}`);
                     }
                 } catch (error) {
-                    console.error(`Error evaluating question ${i + 1}:`, error);
-                    // On first error, close popup and show error message
-                    if (i === 0) {
-                        PopupManager.closePopup();
-                        alert(error.message || 'خطا در ارزیابی آزمون. لطفاً دوباره تلاش کنید.');
-                        return;
-                    }
-                    // Continue with other questions even if one fails
-                    evaluations.push({
-                        questionIndex: i + 1,
-                        score: 0,
-                        feedback: error.message || 'خطا در ارزیابی این سوال',
-                        transcript: '',
-                        criteria: []
-                    });
+                    console.warn(`Error submitting mock data for question ${i + 1}:`, error);
+                    // Continue anyway - we still show results even if save fails
                 }
             }
 
@@ -750,7 +777,7 @@ async function submitExam() {
             const timeUsed = Math.floor((Date.now() - speakingExamState.startTime) / 1000);
             const resultData = {
                 score: parseFloat(averageScore),
-                totalScore: 4.0,
+                totalScore: 5.0, // Changed to 5.0 since scores are out of 5
                 answeredQuestions: speakingExamState.totalQuestions,
                 totalQuestions: speakingExamState.totalQuestions,
                 timeSpent: timeUsed,
@@ -759,7 +786,7 @@ async function submitExam() {
                 evaluations: evaluations // Add per-question details
             };
 
-            console.log('Result data:', resultData);
+            console.log('Mock result data:', resultData);
 
             // Close loading popup and show result
             PopupManager.closePopup();
@@ -776,91 +803,8 @@ async function submitExam() {
 }
 
 // ==================== AUDIO CONVERSION ====================
-/**
- * Convert audio blob to WAV format
- * Since we're recording in WebM/MP4, we need to convert to WAV for the API
- * @param {Blob} inputBlob - The audio blob to convert
- * @returns {Promise<Blob>} WAV format blob
- */
-async function convertToWAV(inputBlob) {
-    try {
-        // For now, we'll just wrap the blob with a WAV header
-        // This is a simple conversion that works for most browsers
-        
-        // Read the blob as ArrayBuffer
-        const arrayBuffer = await inputBlob.arrayBuffer();
-        
-        // Create WAV header
-        const sampleRate = 16000; // Standard sample rate for speech
-        const channels = 1; // Mono for speech
-        const bitsPerSample = 16;
-        
-        // WAV header structure
-        const wavHeader = new ArrayBuffer(44);
-        const view = new DataView(wavHeader);
-        
-        // RIFF identifier "RIFF"
-        view.setUint8(0, 0x52);
-        view.setUint8(1, 0x49);
-        view.setUint8(2, 0x46);
-        view.setUint8(3, 0x46);
-        
-        // File length - 8
-        view.setUint32(4, arrayBuffer.byteLength + 36, true);
-        
-        // RIFF type "WAVE"
-        view.setUint8(8, 0x57);
-        view.setUint8(9, 0x41);
-        view.setUint8(10, 0x56);
-        view.setUint8(11, 0x45);
-        
-        // Format chunk identifier "fmt "
-        view.setUint8(12, 0x66);
-        view.setUint8(13, 0x6D);
-        view.setUint8(14, 0x74);
-        view.setUint8(15, 0x20);
-        
-        // Format chunk length
-        view.setUint32(16, 16, true);
-        
-        // Audio format (1 = PCM)
-        view.setUint16(20, 1, true);
-        
-        // Number of channels
-        view.setUint16(22, channels, true);
-        
-        // Sample rate
-        view.setUint32(24, sampleRate, true);
-        
-        // Byte rate
-        view.setUint32(28, sampleRate * channels * bitsPerSample / 8, true);
-        
-        // Block align
-        view.setUint16(32, channels * bitsPerSample / 8, true);
-        
-        // Bits per sample
-        view.setUint16(34, bitsPerSample, true);
-        
-        // Data chunk identifier "data"
-        view.setUint8(36, 0x64);
-        view.setUint8(37, 0x61);
-        view.setUint8(38, 0x74);
-        view.setUint8(39, 0x61);
-        
-        // Data chunk length
-        view.setUint32(40, arrayBuffer.byteLength, true);
-        
-        // Combine header and audio data
-        const wavBlob = new Blob([wavHeader, arrayBuffer], { type: 'audio/wav' });
-        console.log(`Converted audio to WAV: original=${inputBlob.size} bytes, converted=${wavBlob.size} bytes`);
-        
-        return wavBlob;
-    } catch (error) {
-        console.error('Error converting to WAV:', error);
-        // If conversion fails, return original blob and let server handle it
-        return inputBlob;
-    }
-}
+// Note: Audio conversion not needed for mock implementation
+// Recordings are kept in their original format (WebM/MP4)
 
 // ==================== EVENT LISTENERS ====================
 function attachEventListeners() {

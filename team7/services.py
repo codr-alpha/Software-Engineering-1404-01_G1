@@ -2,6 +2,8 @@ import json
 import logging
 import uuid
 import os
+import time
+import requests
 from django.conf import settings
 from django.utils import timezone
 from openai import OpenAI
@@ -105,7 +107,7 @@ class WritingEvaluator:
 class SpeakingEvaluator:
     """Service layer: Speaking evaluation logic (FR-SP).
     
-    Handles ASR transcription and LLM-based speaking assessment.
+    Handles ASR transcription via Soniox API and LLM-based speaking assessment.
     Evaluates Delivery, Fluency, and Topic Development per ETS rubrics.
     """
 
@@ -113,15 +115,24 @@ class SpeakingEvaluator:
     MIN_DURATION_SEC = 30
     MAX_DURATION_SEC = 90
     MAX_FILE_SIZE_MB = 10
-    ALLOWED_FORMATS = ['.wav', '.mp3', '.flac']
+    ALLOWED_FORMATS = ['.wav', '.mp3', '.flac', '.m4a', '.mp4', '.ogg', '.webm', '.aac', '.aiff', '.amr', '.asf']
 
     def __init__(self):
-        """Initialize OpenAI client for both ASR (Whisper) and LLM."""
+        """Initialize OpenAI client for LLM and Soniox configuration for ASR."""
+        # LLM client for evaluation
         self.client = OpenAI(
             api_key=getattr(settings, 'AI_GENERATOR_API_KEY', 'PLACEHOLDER_KEY'),
             base_url=getattr(settings, 'AI_GENERATOR_BASE_URL', 'https://api.gpt4-all.xyz/v1')
         )
         self.model = getattr(settings, 'AI_GENERATOR_MODEL', 'gemini-3-flash-preview')
+        
+        # Soniox ASR configuration
+        self.soniox_api_key = getattr(settings, 'SONIOX_API_KEY', '')
+        self.soniox_base_url = getattr(settings, 'SONIOX_API_BASE_URL', 'https://api.soniox.com')
+        self.soniox_model = getattr(settings, 'SONIOX_MODEL', 'stt-async-v4')
+        
+        if not self.soniox_api_key:
+            logger.warning("SONIOX_API_KEY not configured. Speech recognition will fail.")
 
     def validate_audio_file(self, audio_file):
         """Validate audio file format and size per SRS FR-SP-01.
@@ -144,47 +155,167 @@ class SpeakingEvaluator:
         
         return True, "OK"
 
-    def transcribe_audio(self, audio_file, timeout=30):
-        """Transcribe audio to text using OpenAI Whisper API (ASR).
+    def transcribe_audio(self, audio_file, timeout=120):
+        """Transcribe audio to text using Soniox Async API (ASR).
         
         Args:
             audio_file: Django UploadedFile object or file path
-            timeout: API request timeout in seconds
+            timeout: Maximum time to wait for transcription completion (seconds)
             
         Returns:
             dict: {'transcript': str, 'language': str} OR None on failure
         """
+        session = requests.Session()
+        session.headers['Authorization'] = f'Bearer {self.soniox_api_key}'
+        
+        file_id = None
+        transcription_id = None
+        
         try:
-            logger.info(f"Starting ASR transcription for file: {audio_file.name if hasattr(audio_file, 'name') else 'unknown'}")
+            # Step 1: Upload audio file to Soniox
+            logger.info(f"Starting Soniox ASR transcription for file: {audio_file.name if hasattr(audio_file, 'name') else 'unknown'}")
             
-            # OpenAI Whisper API expects file-like object
-            response = self.client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
-                response_format="verbose_json",  # Get detailed response with metadata
-                language="en"  # TOEFL is English-only
+            # Reset file pointer to beginning
+            audio_file.seek(0)
+            
+            # Detect MIME type based on file extension
+            file_ext = os.path.splitext(audio_file.name)[1].lower() if hasattr(audio_file, 'name') else ''
+            mime_type_map = {
+                '.mp3': 'audio/mpeg',
+                '.wav': 'audio/wav',
+                '.flac': 'audio/flac',
+                '.m4a': 'audio/mp4',
+                '.mp4': 'audio/mp4',
+                '.ogg': 'audio/ogg',
+                '.webm': 'audio/webm',
+                '.aac': 'audio/aac',
+                '.aiff': 'audio/aiff',
+                '.amr': 'audio/amr',
+                '.asf': 'audio/x-ms-asf',
+            }
+            mime_type = mime_type_map.get(file_ext, 'audio/mpeg')
+            logger.info(f"Audio file extension: {file_ext}, MIME type: {mime_type}")
+            
+            # Upload file
+            logger.info("Uploading audio file to Soniox...")
+            files = {'file': (audio_file.name, audio_file, mime_type)}
+            upload_response = session.post(
+                f"{self.soniox_base_url}/v1/files",
+                files=files
             )
             
-            transcript_text = response.text.strip()
+            if not upload_response.ok:
+                logger.error(f"Soniox file upload failed: {upload_response.status_code}")
+                logger.error(f"Response body: {upload_response.text}")
+            
+            upload_response.raise_for_status()
+            file_id = upload_response.json()['id']
+            logger.info(f"File uploaded successfully. File ID: {file_id}")
+            
+            # Step 2: Create transcription request
+            logger.info("Creating transcription request...")
+            transcription_config = {
+                "model": self.soniox_model,
+                "file_id": file_id,
+                "language_hints": ["en"],  # TOEFL is English-only
+                "enable_language_identification": False,
+                "enable_speaker_diarization": False,
+            }
+            
+            create_response = session.post(
+                f"{self.soniox_base_url}/v1/transcriptions",
+                json=transcription_config
+            )
+            
+            if not create_response.ok:
+                logger.error(f"Soniox transcription creation failed: {create_response.status_code}")
+                logger.error(f"Response body: {create_response.text}")
+            
+            create_response.raise_for_status()
+            transcription_id = create_response.json()['id']
+            logger.info(f"Transcription created. Transcription ID: {transcription_id}")
+            
+            # Step 3: Poll for completion
+            logger.info("Waiting for transcription to complete...")
+            start_time = time.time()
+            while True:
+                if time.time() - start_time > timeout:
+                    logger.error(f"Soniox ASR timeout after {timeout}s")
+                    return None
+                
+                status_response = session.get(
+                    f"{self.soniox_base_url}/v1/transcriptions/{transcription_id}"
+                )
+                status_response.raise_for_status()
+                status_data = status_response.json()
+                
+                logger.info(f"Transcription status: {status_data.get('status')}")
+                
+                if status_data['status'] == 'completed':
+                    logger.info("Transcription completed successfully")
+                    break
+                elif status_data['status'] == 'error':
+                    error_msg = status_data.get('error_message', 'Unknown error')
+                    logger.error(f"Soniox ASR error: {error_msg}")
+                    logger.error(f"Full error response: {status_data}")
+                    return None
+                    
+                # Wait before polling again
+                time.sleep(1)
+            
+            # Step 4: Get transcript
+            logger.info("Fetching transcript...")
+            transcript_response = session.get(
+                f"{self.soniox_base_url}/v1/transcriptions/{transcription_id}/transcript"
+            )
+            transcript_response.raise_for_status()
+            transcript_data = transcript_response.json()
+            
+            # Extract text from tokens
+            tokens = transcript_data.get('tokens', [])
+            logger.info(f"Received {len(tokens)} tokens from Soniox")
+            
+            if not tokens:
+                logger.error("Soniox returned empty token list")
+                logger.error(f"Full transcript response: {transcript_data}")
+                return None
+            
+            transcript_text = ''.join([token['text'] for token in tokens]).strip()
             
             # Check if speech was detected (FR-SP validation)
             if not transcript_text or len(transcript_text) < 10:
-                logger.warning("ASR: No speech detected or transcript too short")
+                logger.warning(f"Soniox ASR: Transcript too short. Length: {len(transcript_text)} chars")
+                logger.warning(f"Transcript text: '{transcript_text}'")
                 return None
             
-            logger.info(f"ASR transcription successful. Length: {len(transcript_text)} chars")
+            logger.info(f"Soniox ASR transcription successful. Length: {len(transcript_text)} chars")
+            
             return {
                 'transcript': transcript_text,
-                'language': getattr(response, 'language', 'en'),
-                'duration': getattr(response, 'duration', None)
+                'language': 'en',
+                'token_count': len(tokens)
             }
             
-        except TimeoutError:
-            logger.error(f"ASR API timeout after {timeout}s")
+        except requests.exceptions.Timeout:
+            logger.error(f"Soniox API timeout after {timeout}s")
+            return None
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Soniox API request error: {str(e)}")
             return None
         except Exception as e:
-            logger.error(f"ASR transcription error: {str(e)}")
+            logger.error(f"Soniox ASR transcription error: {str(e)}")
             return None
+        finally:
+            # Cleanup: Delete transcription and file
+            try:
+                if transcription_id:
+                    logger.info(f"Cleaning up transcription: {transcription_id}")
+                    session.delete(f"{self.soniox_base_url}/v1/transcriptions/{transcription_id}")
+                if file_id:
+                    logger.info(f"Cleaning up uploaded file: {file_id}")
+                    session.delete(f"{self.soniox_base_url}/v1/files/{file_id}")
+            except Exception as cleanup_error:
+                logger.warning(f"Cleanup error (non-critical): {str(cleanup_error)}")
 
     def analyze_speaking(self, transcript_text, question_obj, mode="independent"):
         """Analyze transcript using LLM for Speaking scoring.
@@ -372,7 +503,7 @@ class EvaluationService:
             return {"error": message, "code": "INVALID_INPUT"}, 400
 
         # 3. ASR Transcription
-        asr_result = self.speaking_evaluator.transcribe_audio(audio_file, timeout=30)
+        asr_result = self.speaking_evaluator.transcribe_audio(audio_file, timeout=120)
         if not asr_result:
             logger.error(f"ASR failed for user {user_id}: No speech detected or transcription error")
             return {
