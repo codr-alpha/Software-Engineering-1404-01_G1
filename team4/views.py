@@ -54,7 +54,7 @@ class UserSearchAPIView(generics.ListAPIView):
         query = self.request.query_params.get('search', '')
         user = self.request.user
         
-        # 1. Users I have blocked
+        # 1. Users I have blocked 
         blocked_by_me = BlockList.objects.filter(blocker=user).values_list('blocked_id', flat=True)
         # 2. Users who have blocked me
         blocking_me = BlockList.objects.filter(blocked=user).values_list('blocker_id', flat=True)
