@@ -474,15 +474,15 @@
     <!-- Modal -->
     <div class="modal-overlay" id="finish-modal">
         <div class="modal-box">
-            <h3>اتمام تمرین</h3>
-            <p>آیا مطمئن هستید که می‌خواهید تمرین را به پایان برسانید؟</p>
+            <h3>اتمام آزمون</h3>
+            <p>آیا مطمئن هستید که می‌خواهید آزمون را به پایان برسانید؟</p>
 
             <div class="modal-actions">
                 <button class="btn btn-cancel" id="cancel-finish">
-                    ادامه تمرین
+                    ادامه
                 </button>
                 <button class="btn btn-confirm" id="confirm-finish">
-                    بله، اتمام تمرین
+                    بله، اتمام آزمون
                 </button>
             </div>
         </div>
@@ -678,7 +678,7 @@
             function updateNavigationButtons() {
                 document.getElementById('btn-previous').disabled = currentQuestionIndex === 0;
                 document.getElementById('btn-next').textContent =
-                    currentQuestionIndex === questions.length - 1 ? 'اتمام تمرین ←' : 'سوال بعدی ←';
+                    currentQuestionIndex === questions.length - 1 ? 'اتمام آزمون ←' : 'سوال بعدی ←';
             }
 
             // آپدیت شمارنده پاسخ‌ها
