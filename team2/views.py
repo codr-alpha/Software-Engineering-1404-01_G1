@@ -110,3 +110,57 @@ def teacher_lessons_view(request):
         'total_lessons': lessons.count(),
     }
     return render(request, 'team2_teacher_lessons.html', context)
+
+@api_login_required
+@teacher_required
+@require_http_methods(["GET", "POST"])
+def add_video_view(request, lesson_id):
+
+    try:
+        user_details = UserDetails.objects.using('team2').get(user_id=request.user.id)
+        lesson = get_object_or_404(user_details.lessons.all(), id=lesson_id)
+    except UserDetails.DoesNotExist:
+        messages.error(request, 'پروفایل معلم یافت نشد.')
+        return redirect('team2_teacher_lessons')
+
+    if request.method == 'POST':
+        title = request.POST.get('title', 'Untitled')
+        file_format = request.POST.get('file_format', 'mp4')
+        video_file = request.FILES.get('video_file')
+
+        if not video_file:
+            messages.error(request, 'لطفا یک فایل ویدیو انتخاب کنید.')
+            return render(request, 'team2_add_video.html', {'lesson': lesson})
+
+        try:
+            video_dir = os.path.join(settings.MEDIA_ROOT, 'team2', 'videos')
+            Path(video_dir).mkdir(parents=True, exist_ok=True)
+            
+            import uuid
+            file_name = f"{uuid.uuid4()}_{video_file.name}"
+            file_path = os.path.join(video_dir, file_name)
+            
+            with open(file_path, 'wb+') as f:
+                for chunk in video_file.chunks():
+                    f.write(chunk)
+            
+            relative_path = os.path.join('team2', 'videos', file_name).replace('\\', '/')
+            
+            file_size = video_file.size
+            video = VideoFiles.objects.using('team2').create(
+                lesson=lesson,
+                file_path=relative_path,
+                file_format=file_format,
+                file_size=file_size,
+                uploaded_at=__import__('django.utils.timezone', fromlist=['now']).now(),
+            )
+            messages.success(request, f'ویدیو "{title}" با موفقیت آپلود شد.')
+            return redirect('teacher_lesson_videos', lesson_id=lesson_id)
+        except Exception as e:
+            messages.error(request, f'خطا در آپلود ویدیو: {str(e)}')
+            return render(request, 'team2_add_video.html', {'lesson': lesson})
+
+    context = {
+        'lesson': lesson,
+    }
+    return render(request, 'team2_add_video.html', context)
