@@ -37,7 +37,6 @@ def writing_exam(request):
 def speaking_exam(request):
     return render(request, f"{TEAM_NAME}/speaking_exam.html")
 
-
 @require_GET
 @api_login_required
 def get_question(request):

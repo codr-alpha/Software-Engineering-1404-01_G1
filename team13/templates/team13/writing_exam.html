@@ -28,7 +28,7 @@
   </h2>
 
   <button class="header-back header-exit" type="button"
-          onclick="window.location.href='/team13//'">خروج</button>
+          onclick="window.location.href='/team13/writing/'">خروج</button>
   </header>
 
   <main class="container">
@@ -37,6 +37,7 @@
       <!-- Question Box -->
       <section class="exam-question">
         <h2 class="exam-question-title" id="qTitle">متن سوال</h2>
+        <p class="exam-question-text" id="qText"></p>
         <p class="exam-question-source" id="qSource">منبع آزمون</p>
       </section>
 
@@ -76,6 +77,7 @@
     const answerBox = document.getElementById("answerBox");
 
     const qTitle = document.getElementById("qTitle");
+    const qText = document.getElementById("qText");
     const qSource = document.getElementById("qSource");
 
     const homeBtn = document.querySelector('.header-right .header-icon[title="خانه"]'); // 🏠
@@ -134,18 +136,25 @@
       submitBtn.disabled = true;
 
       try{
-        const res = await fetch("/team13/get_question/?type=writing", { method: "GET" });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || "خطا در دریافت سوال");
+        // const res = await fetch("/team13/get_question/?type=writing", { method: "GET" });
+        // const data = await res.json().catch(() => ({}));
+        const data = {
+  id: 3,
+  title: "Road Trip Memories",
+  text: "Describe your best road trip. Where did you go and what made it memorable?",
+  type: "writing"
+};
+
+        // if (!res.ok) throw new Error(data.error || "خطا در دریافت سوال");
 
         questionId = data.id;
         sessionStorage.setItem("team13_question_id", String(questionId));
         sessionStorage.setItem("team13_question_type", "writing");
 
         if (qTitle) qTitle.textContent = data.title || "متن سوال";
-        if (qSource) qSource.textContent = `سوال شماره ${data.id}`;
+        if (qText) qText.textContent = data.text || "";
+        if (qSource) qSource.textContent = `سوال دریافت شده از:  ${data.id}`;
 
-        // اگر بخواهید متن کامل سوال را هم نمایش دهید، باید یک عنصر برای data.text اضافه کنیم.
       } finally{
         submitBtn.disabled = false;
         setWaiting(false);
@@ -161,20 +170,31 @@
 
       const csrf = getCookie("csrftoken");
 
-      const res = await fetch("/team13/submit_response/", {
-    method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrf ? { "X-CSRFToken": csrf } : {}),
-        },
-        body: JSON.stringify({
-          question_id: questionId,
-          response: answerText
-        })
-  });
+  //     const res = await fetch("/team13/submit_response/", {
+  //   method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         ...(csrf ? { "X-CSRFToken": csrf } : {}),
+  //       },
+  //       body: JSON.stringify({
+  //         question_id: questionId,
+  //         response: answerText
+  //       })
+  // });
 
-  const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "خطا در ثبت پاسخ");
+  // const data = await res.json().catch(() => ({}));
+
+      const data = {
+    'grade_id': 201,
+    'score': 6.0,
+    'category_scores': {
+        'delivery': 6,
+        'language_use': 6,
+        'topic_development': 6,
+    }}
+
+
+  //     if (!res.ok) throw new Error(data.error || "خطا در ثبت پاسخ");
       return data; // {grade_id, score, category_scores, feedback}
 }
 
@@ -203,7 +223,7 @@
 
         sessionStorage.setItem("team13_last_result", JSON.stringify(result));
 
-        submitBtn.textContent = "ثبت شد ✅";
+        submitBtn.textContent = "ثبت شد!";
         setTimeout(() => { submitBtn.textContent = "ثبت پاسخ"; }, 900);
 
       } catch (err) {

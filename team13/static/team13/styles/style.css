@@ -217,19 +217,20 @@ body {
   background: var(--bg-card);
   border-radius: 18px;
   box-shadow: 0 8px 24px var(--shadow-color);
-  padding: 22px;
+  padding-top: 22px;
+  padding-left: 22px;
+  padding-right: 22px;
   min-height: 140px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
   position: relative;
 }
 
 .exam-question-title {
   text-align: center;
-  font-size: 22px;
-  font-weight: 900;
+  font-size: 18px;
+  font-weight: 500;
 }
 
 .exam-question-source {
@@ -508,8 +509,11 @@ body.page-exit{
   height: var(--rec-controls-h, 110px);
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
+  justify-content: center;     /* کل ردیف دقیقاً وسط کادر */
+  gap: 22px;                  /* فاصله بین دکمه‌ها (کمتر از قبل) */
+  width: fit-content;         /* عرض فقط به اندازه محتوا */
+  margin: 18px auto 0;        /* وسط‌چین افقی */
+  direction: ltr !important;  /* ترتیب: سرعت (چپ) - پلی (وسط) - ضبط دوباره (راست) */
 
   background: transparent;
   box-shadow: none;
@@ -517,7 +521,20 @@ body.page-exit{
   border-radius: 0;
 }
 
-.recorder-controls > *{ flex: 0 0 auto; }
+/* دکمه پلی دقیقاً وسط */
+.recorder-main-btn{
+  justify-self: center;
+}
+
+/* دکمه‌های سمت چپ (سرعت) */
+.recorder-controls .speed-btn{
+  justify-self: start;
+}
+
+/* دکمه‌های سمت راست (ضبط دوباره) */
+.recorder-controls .retry-btn{
+  justify-self: end;
+}
 
 .recorder-main-btn{
   width: 66px;
@@ -689,3 +706,60 @@ body.page-exit{
   }
 }
 
+.exam-question-text{
+  font-size: 22px;        /* بزرگتر */
+  line-height: 2;         /* خواناتر */
+  text-align: center;       /* چپ‌چین */
+  direction: ltr;         /* چون سوال انگلیسیه */
+  opacity: 0.95;
+  margin-top: 10px;
+  font-weight: 900;
+}
+
+
+
+/* ===== Speaking exam layout overrides (match design) ===== */
+.exam-bottom{
+  gap: 24px;
+}
+
+/* Speaking: left column has two "islands" stacked (wave + controls) */
+.exam-recorder{
+  grid-template-rows: var(--rec-stage-h, 240px) var(--rec-controls-h, 120px);
+}
+
+/* Controls row: no box, centered, pills on the sides of the main button */
+.recorder-controls{
+  justify-content: center;
+  gap: 22px;
+}
+
+/* Always show pills left/right of main button (same row) in ready state; keep hidden until ready */
+.recorder-extra{
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+.recorder-extra.hidden{ display:none !important; }
+
+/* Actions column: report (small) on top, submit (big) below; match heights with recorder */
+.exam-actions{
+  display: grid;
+  grid-template-rows: var(--rec-controls-h, 120px) var(--rec-stage-h, 240px);
+  gap: 16px;
+  height: calc(var(--rec-controls-h, 120px) + var(--rec-stage-h, 240px) + 16px);
+}
+
+/* Buttons fill cells without forcing extra height */
+.exam-action-btn{
+  height: 100%;
+  min-height: 0;
+}
+
+/* Ensure the recorder stage stays coral and waveform white */
+.recorder-stage{
+  background: var(--coral);
+}
+.recorder-wave{
+  opacity: 0.95;
+}
