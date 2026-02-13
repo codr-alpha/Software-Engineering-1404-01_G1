@@ -2,8 +2,14 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("", views.base),
+    path("", views.base, name="team2_base"),
     path("ping/", views.ping, name="team2_ping"),
+
+    # Home pages
+    path("student/home/", views.student_home, name="team2_student_home"),
+    path("teacher/home/", views.teacher_home, name="team2_teacher_home"),
+
+    # Student URLs
     path("lessons/", views.lessons_list_view, name="team2_lessons_list"),
     path("lessons/rating/", views.lessons_with_rating_view, name="team2_lessons_rating"),
     path("lessons/<int:lesson_id>/", views.lesson_details_view, name="team2_lesson_details"),
