@@ -485,3 +485,37 @@ def browse_lessons_view(request):
         'total_lessons': lessons.count(),
     }
     return render(request, 'team2_browse_lessons.html', context)
+
+
+@api_login_required
+@require_http_methods(["GET", "POST"])
+def enroll_lesson_view(request, lesson_id):
+
+    if request.method == 'POST':
+        try:
+            user_details, _ = UserDetails.objects.using('team2').get_or_create(
+                user_id=request.user.id,
+                defaults={
+                    'email': request.user.email,
+                    'role': 'student',
+                }
+            )
+            
+            lesson = get_object_or_404(
+                Lesson.objects.using('team2'),
+                id=lesson_id,
+                is_deleted=False,
+                status='published'
+            )
+            
+            if lesson not in user_details.lessons.all():
+                user_details.lessons.add(lesson)
+                messages.success(request, f'کلاس "{lesson.title}" با موفقیت به کلاس‌های شما اضافه شد.')
+            else:
+                messages.info(request, 'شما قبلاً در این کلاس ثبت‌نام کرده‌اید.')
+            
+            return redirect('team2_index')
+        except Exception as e:
+            messages.error(request, f'خطا در ثبت‌نام: {str(e)}')
+            return redirect('browse_lessons')
+
