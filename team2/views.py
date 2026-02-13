@@ -3,12 +3,13 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.conf import settings
+from django.db import models
 from functools import wraps
 import os
 from pathlib import Path
 
 from core.auth import api_login_required
-from team2.models import Lesson, UserDetails, VideoFiles, Rating
+from team2.models import Lesson, UserDetails, VideoFiles, Rating, Question, Answer, LessonView
 
 TEAM_NAME = "team2"
 
@@ -420,3 +421,345 @@ def lessons_with_rating_view(request):
         'lessons': lessons,
     }
     return render(request, 'team2_lessons_with_rating.html', context)
+
+
+# ============================
+# Q&A System APIs
+# ============================
+
+@api_login_required
+@require_http_methods(["POST"])
+def ask_question_api(request, lesson_id):
+    """
+    API برای ثبت سؤال جدید
+    POST /team2/api/lessons/<lesson_id>/ask/
+    Body: {"question_text": "متن سؤال"}
+    """
+    import json
+
+    lesson = get_object_or_404(Lesson, id=lesson_id, is_deleted=False, status='published')
+
+    # بررسی اینکه کاربر در این درس ثبت‌نام کرده یا نه
+    try:
+        user_details = UserDetails.objects.using('team2').get(user_id=request.user.id)
+        if not user_details.lessons.filter(id=lesson_id).exists():
+            return JsonResponse({
+                'error': 'شما در این درس ثبت‌نام نکرده‌اید. فقط شرکت‌کنندگان می‌توانند سؤال بپرسند.'
+            }, status=403)
+    except UserDetails.DoesNotExist:
+        return JsonResponse({'error': 'پروفایل کاربری یافت نشد'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+        question_text = data.get('question_text', '').strip()
+
+        if not question_text:
+            return JsonResponse({'error': 'متن سؤال نمی‌تواند خالی باشد'}, status=400)
+
+        if len(question_text) < 10:
+            return JsonResponse({'error': 'متن سؤال باید حداقل 10 کاراکتر باشد'}, status=400)
+
+        question = Question.objects.using('team2').create(
+            lesson=lesson,
+            user_id=request.user.id,
+            question_text=question_text
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': 'سؤال با موفقیت ثبت شد',
+            'question': {
+                'id': question.id,
+                'question_text': question.question_text,
+                'created_at': question.created_at.isoformat(),
+            }
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'فرمت JSON نامعتبر است'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@api_login_required
+@require_http_methods(["POST"])
+def answer_question_api(request, question_id):
+    """
+    API برای پاسخ دادن به سؤال (فقط معلم)
+    POST /team2/api/questions/<question_id>/answer/
+    Body: {"answer_text": "متن پاسخ"}
+    """
+    import json
+
+    question = get_object_or_404(Question, id=question_id, is_deleted=False)
+
+    # بررسی اینکه کاربر معلم این درس است یا نه
+    try:
+        user_details = UserDetails.objects.using('team2').get(user_id=request.user.id)
+        if user_details.role != 'teacher':
+            return JsonResponse({'error': 'فقط معلمان می‌توانند پاسخ دهند'}, status=403)
+
+        # بررسی اینکه معلم صاحب این درس است
+        if not user_details.lessons.filter(id=question.lesson.id).exists():
+            return JsonResponse({'error': 'شما معلم این درس نیستید'}, status=403)
+
+    except UserDetails.DoesNotExist:
+        return JsonResponse({'error': 'پروفایل کاربری یافت نشد'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+        answer_text = data.get('answer_text', '').strip()
+
+        if not answer_text:
+            return JsonResponse({'error': 'متن پاسخ نمی‌تواند خالی باشد'}, status=400)
+
+        if len(answer_text) < 5:
+            return JsonResponse({'error': 'متن پاسخ باید حداقل 5 کاراکتر باشد'}, status=400)
+
+        answer = Answer.objects.using('team2').create(
+            question=question,
+            user_id=request.user.id,
+            answer_text=answer_text
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': 'پاسخ با موفقیت ثبت شد',
+            'answer': {
+                'id': answer.id,
+                'answer_text': answer.answer_text,
+                'created_at': answer.created_at.isoformat(),
+            }
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'فرمت JSON نامعتبر است'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@api_login_required
+@require_http_methods(["GET"])
+def lesson_questions_api(request, lesson_id):
+    """
+    API برای دریافت لیست سؤالات و پاسخ‌های یک درس
+    GET /team2/api/lessons/<lesson_id>/questions/
+    """
+    lesson = get_object_or_404(Lesson, id=lesson_id, is_deleted=False)
+
+    questions = Question.objects.using('team2').filter(
+        lesson=lesson,
+        is_deleted=False
+    ).order_by('-created_at').prefetch_related('answers')
+
+    questions_data = []
+    for q in questions:
+        answers_data = [
+            {
+                'id': a.id,
+                'answer_text': a.answer_text,
+                'created_at': a.created_at.isoformat(),
+                'is_teacher': True  # همه پاسخ‌ها از طرف معلم هستند
+            }
+            for a in q.answers.filter(is_deleted=False).order_by('created_at')
+        ]
+
+        questions_data.append({
+            'id': q.id,
+            'question_text': q.question_text,
+            'created_at': q.created_at.isoformat(),
+            'is_mine': q.user_id == request.user.id,
+            'answers': answers_data,
+            'answers_count': len(answers_data)
+        })
+
+    return JsonResponse({
+        'lesson_id': lesson.id,
+        'lesson_title': lesson.title,
+        'total_questions': len(questions_data),
+        'questions': questions_data
+    })
+
+
+# ============================
+# Statistics & Analytics APIs
+# ============================
+
+@api_login_required
+@require_http_methods(["POST"])
+def track_view_api(request, lesson_id):
+    """
+    API برای ثبت بازدید و زمان تماشای درس
+    POST /team2/api/lessons/<lesson_id>/track-view/
+    Body: {"watch_duration": 120, "completed": false}
+    """
+    import json
+
+    lesson = get_object_or_404(Lesson, id=lesson_id, is_deleted=False, status='published')
+
+    try:
+        data = json.loads(request.body)
+        watch_duration = int(data.get('watch_duration', 0))
+        completed = bool(data.get('completed', False))
+
+        if watch_duration < 0:
+            return JsonResponse({'error': 'زمان تماشا نمی‌تواند منفی باشد'}, status=400)
+
+        # بروزرسانی یا ایجاد رکورد بازدید
+        view, created = LessonView.objects.using('team2').get_or_create(
+            lesson=lesson,
+            user_id=request.user.id,
+            defaults={
+                'watch_duration_seconds': watch_duration,
+                'completed': completed
+            }
+        )
+
+        if not created:
+            # اگر رکورد قبلاً وجود داشته، زمان تماشا را افزایش بده
+            view.watch_duration_seconds = max(view.watch_duration_seconds, watch_duration)
+            view.completed = completed or view.completed
+            view.save(using='team2')
+
+        return JsonResponse({
+            'success': True,
+            'message': 'بازدید ثبت شد',
+            'view': {
+                'id': view.id,
+                'watch_duration': view.watch_duration_seconds,
+                'completed': view.completed,
+                'created': created
+            }
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'فرمت JSON نامعتبر است'}, status=400)
+    except ValueError:
+        return JsonResponse({'error': 'مقادیر ورودی نامعتبر هستند'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@api_login_required
+@teacher_required
+@require_http_methods(["GET"])
+def teacher_lesson_stats_api(request, lesson_id):
+    """
+    API برای دریافت آمار یک درس توسط معلم
+    GET /team2/api/teacher/lessons/<lesson_id>/stats/
+    """
+    from django.db.models import Avg, Sum, Count
+
+    try:
+        user_details = UserDetails.objects.using('team2').get(user_id=request.user.id)
+        lesson = get_object_or_404(user_details.lessons.all(), id=lesson_id, is_deleted=False)
+    except UserDetails.DoesNotExist:
+        return JsonResponse({'error': 'پروفایل معلم یافت نشد'}, status=404)
+
+    # آمار بازدید
+    views = LessonView.objects.using('team2').filter(lesson=lesson)
+    views_stats = views.aggregate(
+        total_views=Count('id'),
+        total_watch_time=Sum('watch_duration_seconds'),
+        avg_watch_time=Avg('watch_duration_seconds'),
+        completed_count=Count('id', filter=models.Q(completed=True))
+    )
+
+    # آمار امتیازات
+    ratings = Rating.objects.using('team2').filter(lesson=lesson, is_deleted=False)
+    ratings_stats = ratings.aggregate(
+        avg_rating=Avg('score'),
+        total_ratings=Count('id')
+    )
+
+    # توزیع امتیاز
+    rating_distribution = {}
+    for i in range(1, 6):
+        rating_distribution[f'star_{i}'] = ratings.filter(score=i).count()
+
+    # آمار سؤالات
+    questions = Question.objects.using('team2').filter(lesson=lesson, is_deleted=False)
+    questions_stats = {
+        'total_questions': questions.count(),
+        'answered_questions': questions.filter(answers__is_deleted=False).distinct().count(),
+        'unanswered_questions': questions.filter(answers__isnull=True).count()
+    }
+
+    # میانگین زمان تماشا در دقیقه
+    avg_watch_minutes = (views_stats['avg_watch_time'] or 0) / 60
+    total_watch_hours = (views_stats['total_watch_time'] or 0) / 3600
+
+    # نرخ تکمیل
+    completion_rate = 0
+    if views_stats['total_views'] > 0:
+        completion_rate = (views_stats['completed_count'] / views_stats['total_views']) * 100
+
+    return JsonResponse({
+        'lesson': {
+            'id': lesson.id,
+            'title': lesson.title,
+            'status': lesson.status,
+            'level': lesson.level,
+            'skill': lesson.skill
+        },
+        'views': {
+            'total': views_stats['total_views'],
+            'completed': views_stats['completed_count'],
+            'completion_rate': round(completion_rate, 2),
+            'total_watch_hours': round(total_watch_hours, 2),
+            'avg_watch_minutes': round(avg_watch_minutes, 2)
+        },
+        'ratings': {
+            'average': round(ratings_stats['avg_rating'], 2) if ratings_stats['avg_rating'] else 0,
+            'total': ratings_stats['total_ratings'],
+            'distribution': rating_distribution
+        },
+        'questions': questions_stats
+    })
+
+
+@api_login_required
+@teacher_required
+@require_http_methods(["GET"])
+def teacher_dashboard_view(request):
+
+    try:
+        user_details = UserDetails.objects.using('team2').get(user_id=request.user.id)
+        lessons = user_details.lessons.filter(is_deleted=False).order_by('-created_at')
+    except UserDetails.DoesNotExist:
+        lessons = Lesson.objects.none()
+
+    from django.db.models import Avg, Count, Sum
+
+    lessons_stats = []
+    for lesson in lessons:
+        # آمار بازدید
+        views_count = LessonView.objects.using('team2').filter(lesson=lesson).count()
+        total_watch = LessonView.objects.using('team2').filter(lesson=lesson).aggregate(
+            total=Sum('watch_duration_seconds')
+        )['total'] or 0
+
+        # آمار امتیازات
+        ratings = Rating.objects.using('team2').filter(lesson=lesson, is_deleted=False)
+        avg_rating = ratings.aggregate(avg=Avg('score'))['avg'] or 0
+        ratings_count = ratings.count()
+
+        # آمار سؤالات
+        questions_count = Question.objects.using('team2').filter(
+            lesson=lesson, is_deleted=False
+        ).count()
+
+        lessons_stats.append({
+            'lesson': lesson,
+            'views_count': views_count,
+            'total_watch_hours': round(total_watch / 3600, 2),
+            'avg_rating': round(avg_rating, 2),
+            'ratings_count': ratings_count,
+            'questions_count': questions_count
+        })
+
+    context = {
+        'lessons_stats': lessons_stats,
+        'total_lessons': lessons.count()
+    }
+    return render(request, 'team2_teacher_dashboard.html', context)
