@@ -4,7 +4,7 @@ from team13.models import base_models
 from team13.models import question
 
 
-class Prompt(base_models.TimeModel, base_models.HistoricalModel):
+class Prompt(base_models.TimeModel):
     """A configurable prompt template for generating AI evaluation requests for student responses. These prompts are
     dynamically constructed to assess student work against standardized  scoring rubrics (ETS-based). The system
     automatically appends the question context, expected answer, and student's actual response to the base prompt text.

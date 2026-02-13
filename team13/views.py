@@ -1,12 +1,11 @@
 import json
+from http import HTTPStatus
 
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST
 from django.db import models
-from rest_framework.response import Response
-from rest_framework import status
 
 from core.auth import api_login_required
 from team13.models.question import Question
@@ -41,22 +40,22 @@ def speaking_exam(request):
 @api_login_required
 def get_question(request):
     """Get a random question for the user to answer"""
-    question_type = request.query_params.get('type', None)
-    if question_type not in Question.QUESTION_TYPES:
-        return Response({'error': 'Invalid question type'}, status=status.HTTP_404_NOT_FOUND)
+    question_type = request.GET.get('type', None)
+    if question_type not in (Question.WRITING_QUESTION_TYPE, Question.SPEAKING_QUESTION_TYPE):
+        return JsonResponse({'error': f'Invalid question type'}, status=HTTPStatus.NOT_FOUND)
     question = Question.objects.filter(question_type=question_type).order_by('?').first() # Get a random question
     if not question:
-        return Response({'error': 'No questions available'}, status=status.HTTP_404_NOT_FOUND)
+        return JsonResponse({'error': 'No questions available'}, status=HTTPStatus.NOT_FOUND)
 
     # Track that user viewed this question
     ViewedQuestion.objects.create(user=request.user, question=question)
 
-    return Response({
+    return JsonResponse({
         'id': question.id,
         'title': question.title,
         'text': question.text,
         'type': question.question_type,
-    }, status=status.HTTP_200_OK)
+    }, status=HTTPStatus.OK)
 
 
 @require_POST
@@ -65,7 +64,7 @@ def submit_response(request):
     # Extract question object.
     question_id = request.data.get('question_id')
     if not question_id:
-        return Response({'error': 'question_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'error': 'question_id is required'}, status=HTTPStatus.NOT_FOUND)
     question = get_object_or_404(Question, id=question_id)
 
     # Extract student response.
@@ -74,25 +73,25 @@ def submit_response(request):
     else:
         audio_file = request.FILES.get('audio_file')
         if not audio_file:
-            return Response({'error': 'audio_file is required for speaking questions'},
-                status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'error': 'audio_file is required for speaking questions'},
+                status=HTTPStatus.NOT_FOUND)
         try:
             student_response = whisper_service.transcribe(audio_file)
         except Exception as e:
-            return Response({'error': f'Transcription failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return JsonResponse({'error': f'Transcription failed: {str(e)}'}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
     if not student_response:
-        return Response({'error': 'student response is required'}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'error': 'student response is required'}, status=HTTPStatus.NOT_FOUND)
 
     # Get an active prompt, we assume that there is no difference to use which active prompt.
     prompt = Prompt.objects.filter(is_active=True).first()
     if not prompt:
-        return Response({'error': 'No active prompt was found'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({'error': 'No active prompt was found'}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
     full_prompt = prompt.get_prompt(question, student_response) # Build prompt and get evaluation
     try:
         result_text = ollama_service.grade(full_prompt)
         result_json = json.loads(result_text)
     except Exception as e:
-        return Response({'error': f'Grading failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({'error': f'Grading failed: {str(e)}'}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     # Save to appropriate grade model
     if question.question_type == Question.WRITING_QUESTION_TYPE:
@@ -118,12 +117,12 @@ def submit_response(request):
             topic_development=category_scores.get('topic_development', 0),
         )
 
-    return Response({
+    return JsonResponse({
         'grade_id': grade_result.id,
         'score': result_json.get('score'),
         'category_scores': result_json.get('category_scores'),
         'feedback': result_json.get('feedback'),
-    }, status=status.HTTP_201_CREATED)
+    }, status=HTTPStatus.CREATED)
 
 
 @require_GET
@@ -213,7 +212,7 @@ def get_user_report(request):
     weak_areas.sort(key=lambda x: x['avg_score'])
     weak_areas = weak_areas[:3]
 
-    return Response({
+    return JsonResponse({
         'summary': {
             'total_attempts': total_writing + total_speaking,
             'writing_attempts': total_writing,

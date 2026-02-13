@@ -9,11 +9,3 @@ class TimeModel(models.Model):
 
     class Meta:
         abstract = True
-
-
-class HistoricalModel(models.Model):
-    """An abstract model providing history tracking functionality records for Django models."""
-    history = simple_history.models.HistoricalRecords(inherit=True)
-
-    class Meta:
-        abstract = True

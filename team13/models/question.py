@@ -3,7 +3,7 @@ from django.db import models
 from team13.models import base_models
 
 
-class Question(base_models.TimeModel, base_models.HistoricalModel):
+class Question(base_models.TimeModel):
     """Assessment questions and their exemplar responses."""
     WRITING_QUESTION_TYPE = 'writing'
     SPEAKING_QUESTION_TYPE = 'speaking'

@@ -7,13 +7,13 @@ from team13.models import question
 from core.models import User
 
 
-class ViewedQuestion(base_models.TimeModel, base_models.HistoricalModel):
+class ViewedQuestion(base_models.TimeModel):
     """Tracks which questions a user has viewed, regardless of submission status."""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     question = models.ForeignKey(question.Question, on_delete=models.CASCADE)
 
 
-class BaseGradeResult(base_models.TimeModel, base_models.HistoricalModel):
+class BaseGradeResult(base_models.TimeModel):
     """Abstract base for all grading results. Stores overall score and links user/question."""
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     question = models.ForeignKey(question.Question, on_delete=models.CASCADE)
