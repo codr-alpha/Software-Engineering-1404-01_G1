@@ -48,7 +48,7 @@ def get_question(request):
         return JsonResponse({'error': 'No questions available'}, status=HTTPStatus.NOT_FOUND)
 
     # Track that user viewed this question
-    ViewedQuestion.objects.create(user=request.user, question=question)
+    ViewedQuestion.objects.create(user_id=request.user.id, question=question)
 
     return JsonResponse({
         'id': question.id,
@@ -97,7 +97,7 @@ def submit_response(request):
     if question.question_type == Question.WRITING_QUESTION_TYPE:
         category_scores = result_json.get('category_scores', {})
         grade_result = WritingGradeResult.objects.create(
-            user=request.user,
+            user_id=request.user.id,
             question=question,
             score=result_json.get('score', 0),
             task_achievement=category_scores.get('task_achievement', 0),
@@ -109,7 +109,7 @@ def submit_response(request):
     else:
         category_scores = result_json.get('category_scores', {})
         grade_result = SpeakingGradeResult.objects.create(
-            user=request.user,
+            user_id=request.user.id,
             question=question,
             score=result_json.get('score', 0),
             delivery=category_scores.get('delivery', 0),
@@ -129,10 +129,10 @@ def submit_response(request):
 @api_login_required
 def get_user_report(request):
     """Get user performance reports and history"""
-    user = request.user
-    writing_grades = WritingGradeResult.objects.filter(user=user).select_related('question')
-    speaking_grades = SpeakingGradeResult.objects.filter(user=user).select_related('question')
-    viewed_counts = ViewedQuestion.objects.filter(user=user).aggregate(
+    user_id = request.user.id
+    writing_grades = WritingGradeResult.objects.filter(user_id=user_id).select_related('question')
+    speaking_grades = SpeakingGradeResult.objects.filter(user_id=user_id).select_related('question')
+    viewed_counts = ViewedQuestion.objects.filter(user_id=user_id).aggregate(
         total_writing=models.Count('id', filter=models.Q(question__question_type=Question.WRITING_QUESTION_TYPE)),
         total_speaking=models.Count('id', filter=models.Q(question__question_type=Question.SPEAKING_QUESTION_TYPE))
     )
