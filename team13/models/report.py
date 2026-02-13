@@ -9,13 +9,13 @@ from core.models import User
 
 class ViewedQuestion(base_models.TimeModel):
     """Tracks which questions a user has viewed, regardless of submission status."""
-    user_id = models.IntegerField()
+    user_id = models.UUIDField()
     question = models.ForeignKey(question.Question, on_delete=models.CASCADE)
 
 
 class BaseGradeResult(base_models.TimeModel):
     """Abstract base for all grading results. Stores overall score and links user/question."""
-    user_id = models.IntegerField()
+    user_id = models.UUIDField()
     question = models.ForeignKey(question.Question, on_delete=models.CASCADE)
     score = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(4)])
 
