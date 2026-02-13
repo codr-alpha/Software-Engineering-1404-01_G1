@@ -9,7 +9,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap" rel="stylesheet">
 
-  {# TODO: change to <link rel="stylesheet" href="{% static 'team13/styles/style.css' %}"> #}
   <link rel="stylesheet" href="/static/team13/styles/style.css">
 
 </head>
@@ -136,12 +135,7 @@
       submitBtn.disabled = true;
 
       try{
-        fetch("/team13/get_question/?type=writing", {
-          method: "GET",
-          credentials: "same-origin",
-          headers: { "Accept": "application/json" }
-        })
-
+        const res = await fetch("/team13/get_question/?type=writing", { method: "GET", credentials: "same-origin", headers: { "Accept": "application/json" } });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "خطا در دریافت سوال");
 
@@ -170,6 +164,7 @@
 
       const res = await fetch("/team13/submit_response/", {
         method: "POST",
+        credentials: "same-origin",
             headers: {
               "Content-Type": "application/json",
               ...(csrf ? { "X-CSRFToken": csrf } : {}),
@@ -209,6 +204,12 @@
         const result = await apiSubmitWriting(text);
 
         sessionStorage.setItem("team13_last_result", JSON.stringify(result));
+        sessionStorage.setItem("team13_overall_time_seconds", String(seconds));
+        // انتقال به صفحه نتیجه
+        document.body.classList.remove("page-enter");
+        document.body.classList.add("page-exit");
+        setTimeout(() => (window.location.href = "/team13/result/"), 160);
+        return;
 
         submitBtn.textContent = "ثبت شد!";
         setTimeout(() => { submitBtn.textContent = "ثبت پاسخ"; }, 900);
