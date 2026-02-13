@@ -159,6 +159,13 @@ def student_home(request):
             completed=True
         ).count()
 
+        # دروس قابل ثبت‌نام (دروسی که دانشجو در آنها ثبت‌نام نکرده)
+        enrolled_ids = enrolled_lessons.values_list('id', flat=True)
+        available_lessons = Lesson.objects.using('team2').filter(
+            is_deleted=False,
+            status='published'
+        ).exclude(id__in=enrolled_ids).prefetch_related('videos').order_by('-created_at')[:6]
+
         context = {
             'lessons_stats': lessons_stats,
             'total_lessons': enrolled_lessons.count(),
@@ -166,9 +173,16 @@ def student_home(request):
             'total_questions': my_questions.count(),
             'total_watch_hours': round(total_watch_time / 3600, 1),
             'completed_lessons': completed_lessons,
+            'available_lessons': available_lessons,
         }
 
     except UserDetails.DoesNotExist:
+        # اگر UserDetails وجود نداشته باشد، همه دروس published را نشان می‌دهیم
+        available_lessons = Lesson.objects.using('team2').filter(
+            is_deleted=False,
+            status='published'
+        ).prefetch_related('videos').order_by('-created_at')[:6]
+
         context = {
             'lessons_stats': [],
             'total_lessons': 0,
@@ -176,6 +190,7 @@ def student_home(request):
             'total_questions': 0,
             'total_watch_hours': 0,
             'completed_lessons': 0,
+            'available_lessons': available_lessons,
         }
 
     return render(request, 'team2_student_home.html', context)
@@ -586,36 +601,40 @@ def browse_lessons_view(request):
 
 
 @api_login_required
-@require_http_methods(["GET", "POST"])
+@require_http_methods(["POST"])
 def enroll_lesson_view(request, lesson_id):
 
-    if request.method == 'POST':
-        try:
-            user_details, _ = UserDetails.objects.using('team2').get_or_create(
-                user_id=request.user.id,
-                defaults={
-                    'email': request.user.email,
-                    'role': 'student',
-                }
-            )
-            
-            lesson = get_object_or_404(
-                Lesson.objects.using('team2'),
-                id=lesson_id,
-                is_deleted=False,
-                status='published'
-            )
-            
-            if lesson not in user_details.lessons.all():
-                user_details.lessons.add(lesson)
-                messages.success(request, f'کلاس "{lesson.title}" با موفقیت به کلاس‌های شما اضافه شد.')
-            else:
-                messages.info(request, 'شما قبلاً در این کلاس ثبت‌نام کرده‌اید.')
-            
-            return redirect('team2_index')
-        except Exception as e:
-            messages.error(request, f'خطا در ثبت‌نام: {str(e)}')
-            return redirect('browse_lessons')
+    try:
+        user_details, _ = UserDetails.objects.using('team2').get_or_create(
+            user_id=request.user.id,
+            defaults={
+                'email': request.user.email,
+                'role': 'student',
+            }
+        )
+
+        lesson = get_object_or_404(
+            Lesson.objects.using('team2'),
+            id=lesson_id,
+            is_deleted=False,
+            status='published'
+        )
+
+        if lesson not in user_details.lessons.all():
+            user_details.lessons.add(lesson)
+            return JsonResponse({
+                'success': True,
+                'message': f'کلاس "{lesson.title}" با موفقیت به کلاس‌های شما اضافه شد.'
+            })
+        else:
+            return JsonResponse({
+                'success': True,
+                'message': 'شما قبلاً در این کلاس ثبت‌نام کرده‌اید.'
+            })
+    except Exception as e:
+        return JsonResponse({
+            'error': f'خطا در ثبت‌نام: {str(e)}'
+        }, status=400)
 
 
 @api_login_required

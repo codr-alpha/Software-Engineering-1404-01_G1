@@ -261,6 +261,62 @@
             font-size: 1.5em;
             margin-bottom: 10px;
         }
+
+        .btn-enroll {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn-enroll:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-enroll:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .enroll-message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            text-align: center;
+        }
+
+        .enroll-message.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .enroll-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .lesson-description {
+            color: #718096;
+            font-size: 0.9em;
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
+        .videos-count {
+            color: #667eea;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -378,6 +434,114 @@
             {% endif %}
         </div>
 
+        <!-- دروس قابل ثبت‌نام -->
+        <div class="section">
+            <div class="section-title">🔍 دروس قابل ثبت‌نام</div>
+            {% if available_lessons %}
+                <div class="lessons-grid">
+                    {% for lesson in available_lessons %}
+                    <div class="lesson-card" id="available-lesson-{{ lesson.id }}">
+                        <div class="lesson-title">{{ lesson.title }}</div>
+
+                        <div class="lesson-description">
+                            {{ lesson.description|truncatewords:20 }}
+                        </div>
+
+                        <div class="lesson-info">
+                            <span class="badge badge-level">{{ lesson.get_level_display }}</span>
+                            <span class="badge badge-skill">{{ lesson.skill }}</span>
+                        </div>
+
+                        <div class="videos-count">
+                            {% if lesson.videos.count > 0 %}
+                                📹 {{ lesson.videos.count }} ویدیو
+                            {% else %}
+                                📹 بدون ویدیو
+                            {% endif %}
+                        </div>
+
+                        <button
+                            class="btn-enroll"
+                            onclick="enrollLesson({{ lesson.id }})"
+                            id="enroll-btn-{{ lesson.id }}"
+                        >
+                            ثبت‌نام در این درس
+                        </button>
+
+                        <div class="enroll-message" id="enroll-msg-{{ lesson.id }}" style="display: none;"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h3>درس جدیدی برای ثبت‌نام وجود ندارد!</h3>
+                    <p>در تمام دروس موجود ثبت‌نام کرده‌اید.</p>
+                </div>
+            {% endif %}
+        </div>
+
     </div>
+
+    <script>
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Enroll in a lesson
+        async function enrollLesson(lessonId) {
+            const button = document.getElementById(`enroll-btn-${lessonId}`);
+            const message = document.getElementById(`enroll-msg-${lessonId}`);
+
+            button.disabled = true;
+            button.textContent = 'در حال ثبت‌نام...';
+            message.style.display = 'none';
+
+            try {
+                const response = await fetch(`/team2/browse/${lessonId}/enroll/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                if (response.ok) {
+                    message.className = 'enroll-message success';
+                    message.textContent = 'ثبت‌نام با موفقیت انجام شد! در حال به‌روزرسانی...';
+                    message.style.display = 'block';
+
+                    // Reload page after 1.5 seconds
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    const data = await response.json();
+                    message.className = 'enroll-message error';
+                    message.textContent = data.error || 'خطا در ثبت‌نام';
+                    message.style.display = 'block';
+                    button.disabled = false;
+                    button.textContent = 'ثبت‌نام در این درس';
+                }
+            } catch (error) {
+                message.className = 'enroll-message error';
+                message.textContent = 'خطا در برقراری ارتباط با سرور';
+                message.style.display = 'block';
+                button.disabled = false;
+                button.textContent = 'ثبت‌نام در این درس';
+            }
+        }
+    </script>
 </body>
 </html>
