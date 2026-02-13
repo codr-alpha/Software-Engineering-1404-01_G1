@@ -308,6 +308,13 @@
     </div>
 
     <script>
+        const lessonId = {{ lesson.id }};
+        let watchStartTime = null;
+        let totalWatchTime = 0; // in seconds
+        let isTracking = false;
+        let trackingInterval = null;
+        let hasCompletedVideo = false;
+
         // مدیریت خطاهای پخش ویدیو
         const videoPlayer = document.getElementById('videoPlayer');
         if (videoPlayer) {
@@ -322,6 +329,121 @@
             videoPlayer.addEventListener('loadedmetadata', function() {
                 console.log('ویدیو با موفقیت لود شد');
             });
+
+            // Track when video starts playing
+            videoPlayer.addEventListener('play', function() {
+                if (!isTracking) {
+                    watchStartTime = Date.now();
+                    isTracking = true;
+                    console.log('شروع ردیابی زمان تماشا');
+                }
+            });
+
+            // Track when video pauses
+            videoPlayer.addEventListener('pause', function() {
+                if (isTracking && watchStartTime) {
+                    const watchDuration = Math.floor((Date.now() - watchStartTime) / 1000);
+                    totalWatchTime += watchDuration;
+                    isTracking = false;
+                    watchStartTime = null;
+                    console.log('زمان تماشا:', totalWatchTime, 'ثانیه');
+                    sendViewTracking(false);
+                }
+            });
+
+            // Track when video ends
+            videoPlayer.addEventListener('ended', function() {
+                if (isTracking && watchStartTime) {
+                    const watchDuration = Math.floor((Date.now() - watchStartTime) / 1000);
+                    totalWatchTime += watchDuration;
+                    isTracking = false;
+                    watchStartTime = null;
+                }
+                hasCompletedVideo = true;
+                console.log('ویدیو به پایان رسید. کل زمان تماشا:', totalWatchTime, 'ثانیه');
+                sendViewTracking(true);
+            });
+
+            // Periodic tracking every 30 seconds
+            trackingInterval = setInterval(function() {
+                if (isTracking && watchStartTime) {
+                    const currentWatchDuration = Math.floor((Date.now() - watchStartTime) / 1000);
+                    const totalForNow = totalWatchTime + currentWatchDuration;
+
+                    // Check if video is mostly watched (>80%)
+                    const videoProgress = videoPlayer.currentTime / videoPlayer.duration;
+                    const isCompleted = videoProgress > 0.8 || hasCompletedVideo;
+
+                    console.log('به‌روزرسانی دوره‌ای: زمان =', totalForNow, 'ثانیه، پیشرفت =', Math.round(videoProgress * 100) + '%');
+                    sendViewTracking(isCompleted, totalForNow);
+                }
+            }, 30000); // Every 30 seconds
+
+            // Send final tracking when page unloads
+            window.addEventListener('beforeunload', function() {
+                if (isTracking && watchStartTime) {
+                    const watchDuration = Math.floor((Date.now() - watchStartTime) / 1000);
+                    totalWatchTime += watchDuration;
+                }
+                if (totalWatchTime > 0) {
+                    // Use sendBeacon for reliable sending on page unload
+                    const data = JSON.stringify({
+                        watch_duration_seconds: totalWatchTime,
+                        completed: hasCompletedVideo
+                    });
+                    navigator.sendBeacon(
+                        `/team2/api/lessons/${lessonId}/track-view/`,
+                        new Blob([data], { type: 'application/json' })
+                    );
+                }
+            });
+        }
+
+        async function sendViewTracking(completed, customWatchTime = null) {
+            const watchTime = customWatchTime !== null ? customWatchTime : totalWatchTime;
+
+            if (watchTime === 0) {
+                return; // Don't send if no watch time
+            }
+
+            try {
+                const response = await fetch(`/team2/api/lessons/${lessonId}/track-view/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        watch_duration_seconds: watchTime,
+                        completed: completed
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    console.log('ردیابی با موفقیت ثبت شد:', data);
+                } else {
+                    console.error('خطا در ثبت ردیابی:', data);
+                }
+            } catch (error) {
+                console.error('خطا در ارسال ردیابی:', error);
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
         }
     </script>
 </body>

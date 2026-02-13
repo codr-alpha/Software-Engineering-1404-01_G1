@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path("", views.base, name="team2_base"),
+    path("", views.base, name="team2_index"),
     path("ping/", views.ping, name="team2_ping"),
 
     # Home pages
@@ -25,6 +26,7 @@ urlpatterns = [
     path("teacher/lessons/<int:lesson_id>/videos/", views.teacher_lesson_videos_view, name="teacher_lesson_videos"),
     path("teacher/lessons/<int:lesson_id>/add-video/", views.add_video_view, name="teacher_add_video"),
     path("teacher/dashboard/", views.teacher_dashboard_view, name="teacher_dashboard"),
+    path("teacher/questions/", views.teacher_questions_view, name="teacher_questions"),
 
     # Admin URLs
     path("admin/users/", views.admin_users_view, name="admin_users"),

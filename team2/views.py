@@ -1148,3 +1148,54 @@ def teacher_dashboard_view(request):
         'total_lessons': lessons.count()
     }
     return render(request, 'team2_teacher_dashboard.html', context)
+
+
+@api_login_required
+@teacher_required
+@require_http_methods(["GET"])
+def teacher_questions_view(request):
+    """
+    صفحه سؤالات برای استاد - نمایش و پاسخ به سؤالات دانشجوها
+    """
+    from django.db.models import Count, Prefetch
+
+    try:
+        user_details = UserDetails.objects.using('team2').get(user_id=request.user.id)
+        # فقط دروس استاد
+        teacher_lessons = user_details.lessons.filter(is_deleted=False).order_by('-created_at')
+    except UserDetails.DoesNotExist:
+        teacher_lessons = Lesson.objects.none()
+
+    # فیلتر برای نمایش
+    filter_type = request.GET.get('filter', 'unanswered')  # all, unanswered, answered
+
+    # سؤالات دروس استاد
+    questions_query = Question.objects.using('team2').filter(
+        lesson__in=teacher_lessons,
+        is_deleted=False
+    ).select_related('lesson').prefetch_related(
+        Prefetch('answers', queryset=Answer.objects.using('team2').filter(is_deleted=False))
+    ).order_by('-created_at')
+
+    # اعمال فیلتر
+    if filter_type == 'unanswered':
+        questions = [q for q in questions_query if not q.answers.exists()]
+    elif filter_type == 'answered':
+        questions = [q for q in questions_query if q.answers.exists()]
+    else:  # all
+        questions = list(questions_query)
+
+    # آمار
+    total_questions = questions_query.count()
+    unanswered_count = sum(1 for q in questions_query if not q.answers.exists())
+    answered_count = total_questions - unanswered_count
+
+    context = {
+        'questions': questions,
+        'filter_type': filter_type,
+        'total_questions': total_questions,
+        'unanswered_count': unanswered_count,
+        'answered_count': answered_count,
+        'teacher_lessons': teacher_lessons,
+    }
+    return render(request, 'team2_teacher_questions.html', context)

@@ -209,6 +209,107 @@
             font-weight: 600;
         }
 
+        .lesson-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Q&A Styles */
+        .question-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-right: 4px solid #667eea;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .question-text {
+            color: #333;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .question-meta {
+            display: flex;
+            gap: 15px;
+            color: #999;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+        }
+
+        .answer-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-answered {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-unanswered {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-mine {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .answers-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .answer-card {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-right: 3px solid #4CAF50;
+        }
+
+        .answer-text {
+            color: #333;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .answer-meta {
+            color: #666;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .teacher-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
         @media (max-width: 768px) {
             .lesson-header {
                 padding: 20px;
@@ -313,8 +414,220 @@
                 <p>معلم این درس هنوز ویدیویی آپلود نکرده است</p>
             </div>
         {% endif %}
+
+        <!-- Q&A Section -->
+        <div class="lesson-content" style="margin-top: 40px;">
+            <h2 class="section-title">💬 پرسش و پاسخ</h2>
+
+            <div style="background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%); padding: 25px; border-radius: 10px; margin-bottom: 25px;">
+                <h3 style="color: #333; margin-top: 0; margin-bottom: 15px;">سوال جدید بپرسید</h3>
+                <textarea
+                    id="questionInput"
+                    placeholder="سوال خود را در مورد این درس بپرسید..."
+                    style="width: 100%; min-height: 120px; padding: 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 0.95rem; resize: vertical;"
+                ></textarea>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                    <span id="charCount" style="color: #999; font-size: 0.85rem;">حداقل 10 کاراکتر</span>
+                    <button
+                        onclick="submitQuestion()"
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: opacity 0.3s;"
+                    >
+                        ارسال سوال
+                    </button>
+                </div>
+                <div id="questionMessage" style="margin-top: 15px; padding: 15px; border-radius: 8px; display: none;"></div>
+            </div>
+
+            <div id="questionsContainer">
+                <p style="text-align: center; color: #999;">در حال بارگذاری سوالات...</p>
+            </div>
+        </div>
     </div>
 
+    <script>
+        const lessonId = {{ lesson.id }};
+        const currentUserId = '{{ request.user.id }}';
+
+        // Character counter
+        const questionInput = document.getElementById('questionInput');
+        const charCount = document.getElementById('charCount');
+
+        questionInput.addEventListener('input', function() {
+            const length = this.value.length;
+            if (length < 10) {
+                charCount.textContent = `حداقل ${10 - length} کاراکتر دیگر`;
+                charCount.style.color = '#e53e3e';
+            } else {
+                charCount.textContent = `${length} کاراکتر`;
+                charCount.style.color = '#48bb78';
+            }
+        });
+
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Submit question
+        async function submitQuestion() {
+            const questionText = questionInput.value.trim();
+            const messageDiv = document.getElementById('questionMessage');
+
+            if (questionText.length < 10) {
+                messageDiv.style.display = 'block';
+                messageDiv.style.backgroundColor = '#fee2e2';
+                messageDiv.style.color = '#991b1b';
+                messageDiv.style.border = '1px solid #fecaca';
+                messageDiv.textContent = 'سوال باید حداقل 10 کاراکتر داشته باشد';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/team2/api/lessons/${lessonId}/ask/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ question_text: questionText })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageDiv.style.display = 'block';
+                    messageDiv.style.backgroundColor = '#d1fae5';
+                    messageDiv.style.color = '#065f46';
+                    messageDiv.style.border = '1px solid #a7f3d0';
+                    messageDiv.textContent = 'سوال شما با موفقیت ثبت شد';
+
+                    questionInput.value = '';
+                    charCount.textContent = 'حداقل 10 کاراکتر';
+                    charCount.style.color = '#999';
+
+                    setTimeout(() => {
+                        messageDiv.style.display = 'none';
+                    }, 3000);
+
+                    loadQuestions();
+                } else {
+                    messageDiv.style.display = 'block';
+                    messageDiv.style.backgroundColor = '#fee2e2';
+                    messageDiv.style.color = '#991b1b';
+                    messageDiv.style.border = '1px solid #fecaca';
+                    messageDiv.textContent = data.error || 'خطا در ثبت سوال';
+                }
+            } catch (error) {
+                messageDiv.style.display = 'block';
+                messageDiv.style.backgroundColor = '#fee2e2';
+                messageDiv.style.color = '#991b1b';
+                messageDiv.style.border = '1px solid #fecaca';
+                messageDiv.textContent = 'خطا در برقراری ارتباط با سرور';
+            }
+        }
+
+        // Load questions
+        async function loadQuestions() {
+            const container = document.getElementById('questionsContainer');
+
+            try {
+                const response = await fetch(`/team2/api/lessons/${lessonId}/questions/`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    container.innerHTML = '<p style="text-align: center; color: #e53e3e;">خطا در بارگذاری سوالات</p>';
+                    return;
+                }
+
+                if (data.questions.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;"><div style="font-size: 2rem; margin-bottom: 10px;">💭</div><p>هنوز سوالی پرسیده نشده است. اولین نفر باشید!</p></div>';
+                    return;
+                }
+
+                container.innerHTML = data.questions.map(q => {
+                    const isMyQuestion = q.user_id === currentUserId;
+                    const hasAnswers = q.answers && q.answers.length > 0;
+
+                    let badges = '';
+                    if (isMyQuestion) {
+                        badges += '<span class="answer-badge badge-mine">سوال من</span> ';
+                    }
+                    if (hasAnswers) {
+                        badges += '<span class="answer-badge badge-answered">پاسخ داده شده</span>';
+                    } else {
+                        badges += '<span class="answer-badge badge-unanswered">در انتظار پاسخ</span>';
+                    }
+
+                    const answersHtml = hasAnswers ? `
+                        <div class="answers-section">
+                            <h4 style="color: #333; font-size: 0.95rem; margin-bottom: 10px;">پاسخ‌ها:</h4>
+                            ${q.answers.map(a => `
+                                <div class="answer-card">
+                                    <div class="answer-text">${escapeHtml(a.answer_text)}</div>
+                                    <div class="answer-meta">
+                                        <span class="teacher-badge">معلم</span>
+                                        <span>${formatPersianDate(a.created_at)}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="question-card">
+                            <div class="question-header">
+                                <div style="flex: 1;">
+                                    <div class="question-text">${escapeHtml(q.question_text)}</div>
+                                    <div class="question-meta">
+                                        <span>📅 ${formatPersianDate(q.created_at)}</span>
+                                        <span>💬 ${q.answers ? q.answers.length : 0} پاسخ</span>
+                                    </div>
+                                </div>
+                                <div>${badges}</div>
+                            </div>
+                            ${answersHtml}
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                container.innerHTML = '<p style="text-align: center; color: #e53e3e;">خطا در بارگذاری سوالات</p>';
+                console.error('Error loading questions:', error);
+            }
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function formatPersianDate(dateString) {
+            const date = new Date(dateString);
+            const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            return date.toLocaleDateString('fa-IR', options);
+        }
+
+        // Load questions on page load
+        document.addEventListener('DOMContentLoaded', loadQuestions);
+    </script>
 
 </body>
 

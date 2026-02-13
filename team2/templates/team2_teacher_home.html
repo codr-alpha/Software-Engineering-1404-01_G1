@@ -212,6 +212,81 @@
             font-size: 0.85em;
             color: #78350f;
             margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .answer-form {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #fde68a;
+        }
+
+        .answer-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 2px solid #fde68a;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9em;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+
+        .answer-textarea:focus {
+            outline: none;
+            border-color: #f59e0b;
+        }
+
+        .answer-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .char-counter {
+            font-size: 0.85em;
+            color: #78350f;
+        }
+
+        .btn-submit-answer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.3s;
+        }
+
+        .btn-submit-answer:hover {
+            opacity: 0.9;
+        }
+
+        .btn-submit-answer:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .answer-message {
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            font-size: 0.9em;
+        }
+
+        .answer-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            display: block;
+        }
+
+        .answer-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
         }
 
         .btn {
@@ -279,16 +354,35 @@
         <div class="section">
             <div class="section-title">
                 <span>⚠️ سؤالات اخیر بدون پاسخ</span>
+                <a href="{% url 'teacher_questions' %}" class="btn">مشاهده همه سؤالات</a>
             </div>
             <div class="questions-list">
                 {% for question in recent_unanswered %}
-                <div class="question-card">
+                <div class="question-card" id="question-{{ question.id }}">
                     <div class="question-text">
                         {{ question.question_text }}
                     </div>
                     <div class="question-meta">
-                        <span>درس: {{ question.lesson.title }}</span>
-                        <span>{{ question.created_at|date:"Y/m/d H:i" }}</span>
+                        <span>📚 درس: {{ question.lesson.title }}</span>
+                        <span>📅 {{ question.created_at|date:"Y/m/d H:i" }}</span>
+                    </div>
+
+                    <div class="answer-form">
+                        <textarea
+                            class="answer-textarea"
+                            id="answer-{{ question.id }}"
+                            placeholder="پاسخ خود را اینجا بنویسید..."
+                        ></textarea>
+                        <div class="answer-actions">
+                            <span class="char-counter" id="counter-{{ question.id }}">حداقل 10 کاراکتر</span>
+                            <button
+                                class="btn-submit-answer"
+                                onclick="submitAnswerHome({{ question.id }})"
+                            >
+                                ارسال پاسخ
+                            </button>
+                        </div>
+                        <div class="answer-message" id="message-{{ question.id }}"></div>
                     </div>
                 </div>
                 {% endfor %}
@@ -381,5 +475,101 @@
         </div>
 
     </div>
+
+    <script>
+        // Character counter for answer textareas
+        document.querySelectorAll('.answer-textarea').forEach(textarea => {
+            const questionId = textarea.id.replace('answer-', '');
+            const counter = document.getElementById(`counter-${questionId}`);
+
+            textarea.addEventListener('input', function() {
+                const length = this.value.length;
+                if (length < 10) {
+                    counter.textContent = `حداقل ${10 - length} کاراکتر دیگر`;
+                    counter.style.color = '#e53e3e';
+                } else {
+                    counter.textContent = `${length} کاراکتر`;
+                    counter.style.color = '#48bb78';
+                }
+            });
+        });
+
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Submit answer from home page
+        async function submitAnswerHome(questionId) {
+            const textarea = document.getElementById(`answer-${questionId}`);
+            const messageDiv = document.getElementById(`message-${questionId}`);
+            const button = event.target;
+            const answerText = textarea.value.trim();
+
+            if (answerText.length < 10) {
+                messageDiv.className = 'answer-message error';
+                messageDiv.textContent = 'پاسخ باید حداقل 10 کاراکتر داشته باشد';
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = 'در حال ارسال...';
+
+            try {
+                const response = await fetch(`/team2/api/questions/${questionId}/answer/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ answer_text: answerText })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageDiv.className = 'answer-message success';
+                    messageDiv.textContent = 'پاسخ شما با موفقیت ثبت شد!';
+
+                    // Remove the question card after successful submission
+                    setTimeout(() => {
+                        const questionCard = document.getElementById(`question-${questionId}`);
+                        questionCard.style.transition = 'opacity 0.5s ease';
+                        questionCard.style.opacity = '0';
+                        setTimeout(() => {
+                            questionCard.remove();
+
+                            // Check if there are no more questions, reload the page
+                            const questionsContainer = questionCard.parentElement;
+                            if (questionsContainer && questionsContainer.children.length === 0) {
+                                window.location.reload();
+                            }
+                        }, 500);
+                    }, 1500);
+                } else {
+                    messageDiv.className = 'answer-message error';
+                    messageDiv.textContent = data.error || 'خطا در ثبت پاسخ';
+                    button.disabled = false;
+                    button.textContent = 'ارسال پاسخ';
+                }
+            } catch (error) {
+                messageDiv.className = 'answer-message error';
+                messageDiv.textContent = 'خطا در برقراری ارتباط با سرور';
+                button.disabled = false;
+                button.textContent = 'ارسال پاسخ';
+            }
+        }
+    </script>
 </body>
 </html>
