@@ -14,6 +14,7 @@ class Lesson(models.Model):
     ]
 
     id = models.BigAutoField(primary_key=True)
+    teacher_id = models.UUIDField(db_index=True, null=True, blank=True)  # Reference to UserDetails with role='teacher'
     title = models.CharField(max_length=255)
     description = models.TextField()
     subject = models.CharField(max_length=255)
@@ -112,3 +113,39 @@ class UserDetails(models.Model):
 
     def __str__(self):
         return f"{self.email} : {self.role}"
+
+
+class Rating(models.Model):
+    """
+    امتیازدهی کاربران به دروس - برای Statistics Dashboard
+    هر کاربر فقط یک امتیاز به هر درس می‌تونه بده
+    """
+    id = models.BigAutoField(primary_key=True)
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='ratings',
+    )
+    user_id = models.UUIDField(db_index=True)  # Reference to core.User.id
+    score = models.IntegerField(
+        help_text='Score from 1 to 5'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['lesson', 'user_id']  # یک کاربر فقط یک امتیاز به هر درس
+        indexes = [
+            models.Index(fields=['lesson', 'user_id']),
+            models.Index(fields=['lesson', 'score']),
+        ]
+
+    def __str__(self):
+        return f"Rating {self.score}/5 for {self.lesson.title}"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.score < 1 or self.score > 5:
+            raise ValidationError('Score must be between 1 and 5')
