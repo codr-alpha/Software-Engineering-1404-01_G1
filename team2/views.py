@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from core.auth import api_login_required
-from team2.models import Lesson, UserDetails, VideoFiles
+from team2.models import Lesson, UserDetails, VideoFiles, Rating
 
 TEAM_NAME = "team2"
 
@@ -279,3 +279,126 @@ def teacher_create_lesson_view(request):
         'levels': [('beginner', 'مبتدی'), ('intermediate', 'متوسط'), ('advanced', 'پیشرفته')],
     }
     return render(request, 'team2_teacher_create_lesson.html', context)
+
+
+
+@api_login_required
+@require_http_methods(["POST"])
+def rate_lesson_api(request, lesson_id):
+    """
+    POST /team2/api/lessons/<lesson_id>/rate/
+    Body: {"score": 1-5}
+    """
+    import json
+    from django.db import IntegrityError
+
+    lesson = get_object_or_404(Lesson, id=lesson_id, is_deleted=False, status='published')
+
+    try:
+        data = json.loads(request.body)
+        score = int(data.get('score', 0))
+
+        if score < 1 or score > 5:
+            return JsonResponse({'error': 'امتیاز باید بین 1 تا 5 باشد'}, status=400)
+
+        rating, created = Rating.objects.using('team2').update_or_create(
+            lesson=lesson,
+            user_id=request.user.id,
+            defaults={'score': score}
+        )
+
+
+        from django.db.models import Avg
+        avg_rating = Rating.objects.using('team2').filter(
+            lesson=lesson,
+            is_deleted=False
+        ).aggregate(Avg('score'))['score__avg']
+
+        return JsonResponse({
+            'success': True,
+            'message': 'با موفقیت ثبت شد' if created else 'امتیاز به‌روزرسانی شد',
+            'rating': {
+                'id': rating.id,
+                'score': rating.score,
+                'created': created
+            },
+            'lesson_avg_rating': round(avg_rating, 2) if avg_rating else 0,
+            'total_ratings': Rating.objects.using('team2').filter(lesson=lesson, is_deleted=False).count()
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'فرمت JSON نامعتبر است'}, status=400)
+    except ValueError:
+        return JsonResponse({'error': 'امتیاز باید عدد باشد'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@api_login_required
+@require_http_methods(["GET"])
+def lesson_ratings_api(request, lesson_id):
+    """
+    API endpoint برای دریافت امتیازهای یک درس
+    GET /team2/api/lessons/<lesson_id>/ratings/
+    """
+    from django.db.models import Avg, Count
+
+    lesson = get_object_or_404(Lesson, id=lesson_id, is_deleted=False)
+
+    ratings = Rating.objects.using('team2').filter(
+        lesson=lesson,
+        is_deleted=False
+    ).order_by('-created_at')
+
+
+    stats = ratings.aggregate(
+        avg_score=Avg('score'),
+        total=Count('id')
+    )
+
+
+    distribution = {}
+    for i in range(1, 6):
+        distribution[f'star_{i}'] = ratings.filter(score=i).count()
+
+  
+    user_rating = None
+    try:
+        user_rating_obj = ratings.get(user_id=request.user.id)
+        user_rating = user_rating_obj.score
+    except Rating.DoesNotExist:
+        pass
+
+    return JsonResponse({
+        'lesson_id': lesson.id,
+        'lesson_title': lesson.title,
+        'stats': {
+            'average': round(stats['avg_score'], 2) if stats['avg_score'] else 0,
+            'total': stats['total'],
+            'distribution': distribution
+        },
+        'user_rating': user_rating,
+        'ratings': [
+            {
+                'id': r.id,
+                'score': r.score,
+                'created_at': r.created_at.isoformat(),
+            }
+            for r in ratings[:10]  
+        ]
+    })
+
+
+@api_login_required
+@require_http_methods(["GET"])
+def lessons_with_rating_view(request):
+
+    lessons = Lesson.objects.using('team2').filter(
+        is_deleted=False,
+        status='published'
+    ).order_by('-created_at')
+
+    context = {
+        'lessons': lessons,
+    }
+    return render(request, 'team2_lessons_with_rating.html', context)
